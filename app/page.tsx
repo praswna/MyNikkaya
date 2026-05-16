@@ -29,6 +29,7 @@ export default function Home() {
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
   const quotesRef = useRef<Quote[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const colors = THEMES[theme];
 
@@ -65,6 +66,7 @@ export default function Home() {
   const handleNewQuote = useCallback(() => {
     setCurrentQuote(pickRandom(quotesRef.current, selectedCategory));
     setSyncStatus(null);
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [selectedCategory]);
 
   const handleSync = useCallback(async () => {
@@ -163,7 +165,7 @@ export default function Home() {
       )}
 
       {/* 명언 텍스트 — 세로 스크롤 */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
         <div className="flex min-h-full items-center justify-center">
           <RubyText
             text={currentQuote.text}

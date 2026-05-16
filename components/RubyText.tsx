@@ -39,7 +39,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         }
         if (seg.type === "ruby" && seg.ruby) {
           return (
-            <ruby key={i} style={{ color: colors.textEmphasis, textDecoration: "underline", textDecorationColor: colors.textEmphasis, textUnderlineOffset: "2px" } as React.CSSProperties}>
+            <ruby key={i} style={{ color: colors.textEmphasis } as React.CSSProperties}>
               {seg.content}
               <rt style={{
                 fontSize: getRubyFontSize(seg.ruby),
