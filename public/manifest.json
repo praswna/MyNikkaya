@@ -1,0 +1,26 @@
+{
+  "name": "불교 경전",
+  "short_name": "불교 경전",
+  "description": "불교 명언을 만나보세요",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF7",
+  "theme_color": "#8B7355",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
