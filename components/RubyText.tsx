@@ -49,7 +49,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
                 whiteSpace: "pre",
                 lineHeight: "1",
               }}>
-                {seg.ruby.map(r => r.replace(/ /g, "\n")).join("\n")}
+                {seg.ruby.join("\n")}
               </rt>
             </ruby>
           );
