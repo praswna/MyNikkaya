@@ -12,8 +12,11 @@ import type { Quote } from "@/lib/types";
 const STORAGE_KEY_THEME = "app_theme";
 const STORAGE_KEY_FONT_SCALE = "app_font_scale";
 
-function pickRandom(quotes: Quote[], category: string | null): Quote | null {
-  const pool = category ? quotes.filter((q) => q.category === category) : quotes;
+function pickRandom(quotes: Quote[], category: string | null, excludeId?: string): Quote | null {
+  let pool = category ? quotes.filter((q) => q.category === category) : quotes;
+  if (pool.length > 1 && excludeId) {
+    pool = pool.filter((q) => q.id !== excludeId);
+  }
   if (pool.length === 0) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -64,9 +67,9 @@ export default function Home() {
   }, [applyQuotes]);
 
   const handleNewQuote = useCallback(() => {
-    setCurrentQuote(pickRandom(quotesRef.current, selectedCategory));
+    setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
     setSyncStatus(null);
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: 0 });
   }, [selectedCategory]);
 
   const handleSync = useCallback(async () => {
