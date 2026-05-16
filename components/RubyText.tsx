@@ -10,11 +10,11 @@ interface RubyTextProps {
   colors: ThemeColors;
 }
 
-function getRubyFontSize(text: string): string {
-  const len = text.length;
-  if (len > 12) return "0.38em";
-  if (len > 8)  return "0.44em";
-  if (len > 4)  return "0.50em";
+function getRubyFontSize(parts: string[]): string {
+  const maxLen = Math.max(...parts.map((r) => r.length));
+  if (maxLen > 12) return "0.38em";
+  if (maxLen > 8)  return "0.44em";
+  if (maxLen > 4)  return "0.50em";
   return "0.55em";
 }
 
@@ -39,20 +39,17 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         }
         if (seg.type === "ruby" && seg.ruby) {
           return (
-            <ruby key={i} style={{ color: colors.textEmphasis, rubyAlign: "center" } as React.CSSProperties}>
+            <ruby key={i} style={{ color: colors.textEmphasis } as React.CSSProperties}>
               {seg.content}
               <rt style={{
+                fontSize: getRubyFontSize(seg.ruby),
                 color: colors.rubyText,
                 fontWeight: "normal",
                 letterSpacing: "0.02em",
                 whiteSpace: "pre",
                 lineHeight: "1",
               }}>
-                {seg.ruby.map((r, j) => (
-                  <span key={j} style={{ fontSize: getRubyFontSize(r), display: "block" }}>
-                    {r}
-                  </span>
-                ))}
+                {seg.ruby.join("\n")}
               </rt>
             </ruby>
           );
