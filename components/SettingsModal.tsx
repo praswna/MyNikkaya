@@ -9,6 +9,7 @@ interface SettingsModalProps {
   onThemeToggle: () => void;
   fontScale: number;
   onFontScaleChange: (scale: number) => void;
+  onMeditationStart: () => void;
   colors: ThemeColors;
 }
 
@@ -19,6 +20,7 @@ export function SettingsModal({
   onThemeToggle,
   fontScale,
   onFontScaleChange,
+  onMeditationStart,
   colors,
 }: SettingsModalProps) {
   if (!isOpen) return null;
@@ -78,7 +80,7 @@ export function SettingsModal({
         </div>
 
         {/* 글자 크기 슬라이더 */}
-        <div>
+        <div className="mb-5">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium" style={{ color: colors.text }}>
               글자 크기
@@ -101,6 +103,21 @@ export function SettingsModal({
             <span className="text-base font-bold" style={{ color: colors.textMuted }}>가</span>
           </div>
         </div>
+
+        {/* 수행 시작 버튼 */}
+        <button
+          onClick={() => {
+            onMeditationStart();
+            onClose();
+          }}
+          className="w-full rounded-xl py-3 text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: colors.categorySelected,
+            color: colors.categorySelectedText,
+          }}
+        >
+          🔔 수행 시작 (1시간)
+        </button>
       </div>
     </>
   );
