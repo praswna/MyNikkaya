@@ -23,6 +23,8 @@ export function SettingsModal({
 }: SettingsModalProps) {
   if (!isOpen) return null;
 
+  const isLight = theme === "light";
+
   return (
     <>
       <div
@@ -41,18 +43,35 @@ export function SettingsModal({
         {/* 다크/라이트 모드 토글 */}
         <div className="mb-5 flex items-center justify-between">
           <span className="text-sm font-medium" style={{ color: colors.text }}>
-            {theme === "dark" ? "🌙 다크 모드" : "☀️ 라이트 모드"}
+            {isLight ? "☀️ 라이트 모드" : "🌙 다크 모드"}
           </span>
           <button
             onClick={onThemeToggle}
-            className="relative h-7 w-12 rounded-full transition-colors duration-200"
-            style={{ backgroundColor: theme === "dark" ? colors.categorySelected : colors.categoryBorder }}
+            aria-label="테마 토글"
+            style={{
+              position: "relative",
+              width: "44px",
+              height: "24px",
+              borderRadius: "12px",
+              backgroundColor: isLight ? colors.categorySelected : colors.categoryBorder,
+              transition: "background-color 0.2s",
+              padding: 0,
+              border: "none",
+              cursor: "pointer",
+            }}
           >
             <span
-              className="absolute top-0.5 h-6 w-6 rounded-full shadow transition-transform duration-200"
               style={{
-                backgroundColor: colors.bg,
-                transform: theme === "dark" ? "translateX(22px)" : "translateX(2px)",
+                position: "absolute",
+                top: "2px",
+                left: "2px",
+                width: "20px",
+                height: "20px",
+                borderRadius: "10px",
+                backgroundColor: colors.text,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                transform: isLight ? "translateX(20px)" : "translateX(0)",
+                transition: "transform 0.2s",
               }}
             />
           </button>
