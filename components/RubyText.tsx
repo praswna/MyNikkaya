@@ -39,17 +39,21 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         }
         if (seg.type === "ruby" && seg.ruby) {
           return (
-            <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: 'bottom' } as React.CSSProperties}>
+            <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
               {seg.content}
               <rt style={{
                 fontSize: getRubyFontSize(seg.ruby),
                 color: colors.rubyText,
                 fontWeight: "normal",
                 letterSpacing: "0.02em",
-                whiteSpace: "pre",
                 lineHeight: "1",
               }}>
-                {seg.ruby.join("\n")}
+                {seg.ruby.map((r, j) => (
+                  <span key={j}>
+                    {r}
+                    {j < seg.ruby!.length - 1 && <br />}
+                  </span>
+                ))}
               </rt>
             </ruby>
           );
