@@ -23,15 +23,61 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
   const [phase, setPhase] = useState<"waiting" | "meditating" | "done">("waiting");
   const [remaining, setRemaining] = useState(TOTAL_SECONDS);
   const [countdown, setCountdown] = useState(START_DELAY_SECONDS);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const bellRef = useRef<HTMLAudioElement | null>(null);
+  const silenceRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const playBell = useCallback(() => {
     try {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch((e) => console.warn("종소리 재생 실패:", e));
+      if (bellRef.current) {
+        bellRef.current.currentTime = 0;
+        bellRef.current.play().catch((e) => console.warn("종소리 재생 실패:", e));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const startSilence = useCallback(() => {
+    try {
+      if (silenceRef.current) {
+        silenceRef.current.loop = true;
+        silenceRef.current.volume = 0.01;
+        silenceRef.current.play().catch((e) => console.warn("무음 재생 실패:", e));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const stopSilence = useCallback(() => {
+    try {
+      if (silenceRef.current) {
+        silenceRef.current.pause();
+        silenceRef.current.currentTime = 0;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+      }
+    } catch (e) {
+      console.warn("Wake Lock 실패:", e);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
       }
     } catch (e) {
       console.error(e);
@@ -47,24 +93,36 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
 
   const handleStop = useCallback(() => {
     cleanup();
+    stopSilence();
+    releaseWakeLock();
     setPhase("waiting");
     setRemaining(TOTAL_SECONDS);
     setCountdown(START_DELAY_SECONDS);
     onClose();
-  }, [cleanup, onClose]);
+  }, [cleanup, stopSilence, releaseWakeLock, onClose]);
 
-  // 시작 카운트다운 및 명상 타이머
+  // 모달 열림/닫힘 처리
   useEffect(() => {
     if (!isOpen) {
       cleanup();
+      stopSilence();
+      releaseWakeLock();
       setPhase("waiting");
       setRemaining(TOTAL_SECONDS);
       setCountdown(START_DELAY_SECONDS);
       return;
     }
 
+    // 모달 열리면 무음 트랙 시작 + Wake Lock 요청
+    startSilence();
+    requestWakeLock();
+  }, [isOpen, cleanup, stopSilence, releaseWakeLock, startSilence, requestWakeLock]);
+
+  // 단계별 타이머
+  useEffect(() => {
+    if (!isOpen) return;
+
     if (phase === "waiting") {
-      // 5초 카운트다운
       let count = START_DELAY_SECONDS;
       setCountdown(count);
       intervalRef.current = setInterval(() => {
@@ -78,7 +136,6 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
         }
       }, 1000);
     } else if (phase === "meditating") {
-      // 1시간 타이머
       intervalRef.current = setInterval(() => {
         const remainingMs = Math.max(0, endTimeRef.current - Date.now());
         const remainingSec = Math.ceil(remainingMs / 1000);
@@ -87,16 +144,25 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
           cleanup();
           playBell();
           setPhase("done");
-          // 종소리 끝난 후 자동 닫기
-          setTimeout(() => {
-            handleStop();
-          }, 5000);
+          setTimeout(() => handleStop(), 15000);
         }
       }, 250);
     }
 
     return cleanup;
   }, [isOpen, phase, cleanup, playBell, handleStop]);
+
+  // 백그라운드 → 포그라운드 전환 시 Wake Lock 재요청
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [isOpen, requestWakeLock]);
 
   if (!isOpen) return null;
 
@@ -106,7 +172,8 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
         className="fixed inset-0 z-50 flex flex-col items-center justify-center"
         style={{ backgroundColor: colors.bg }}
       >
-        <audio ref={audioRef} src="/bell.m4a" preload="auto" />
+        <audio ref={bellRef} src="/bell.m4a" preload="auto" />
+        <audio ref={silenceRef} src="/silence.mp3" preload="auto" loop />
 
         {phase === "waiting" && (
           <>
@@ -133,7 +200,6 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
           </>
         )}
 
-        {/* 중지 버튼 */}
         {(phase === "waiting" || phase === "meditating") && (
           <button
             onClick={handleStop}
