@@ -27,7 +27,6 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
   const silenceRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const playBell = useCallback(() => {
     try {
@@ -63,27 +62,6 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
     }
   }, []);
 
-  const requestWakeLock = useCallback(async () => {
-    try {
-      if ("wakeLock" in navigator) {
-        wakeLockRef.current = await navigator.wakeLock.request("screen");
-      }
-    } catch (e) {
-      console.warn("Wake Lock 실패:", e);
-    }
-  }, []);
-
-  const releaseWakeLock = useCallback(async () => {
-    try {
-      if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
   const cleanup = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -94,31 +72,24 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
   const handleStop = useCallback(() => {
     cleanup();
     stopSilence();
-    releaseWakeLock();
     setPhase("waiting");
     setRemaining(TOTAL_SECONDS);
     setCountdown(START_DELAY_SECONDS);
     onClose();
-  }, [cleanup, stopSilence, releaseWakeLock, onClose]);
+  }, [cleanup, stopSilence, onClose]);
 
-  // 모달 열림/닫힘 처리
   useEffect(() => {
     if (!isOpen) {
       cleanup();
       stopSilence();
-      releaseWakeLock();
       setPhase("waiting");
       setRemaining(TOTAL_SECONDS);
       setCountdown(START_DELAY_SECONDS);
       return;
     }
-
-    // 모달 열리면 무음 트랙 시작 + Wake Lock 요청
     startSilence();
-    requestWakeLock();
-  }, [isOpen, cleanup, stopSilence, releaseWakeLock, startSilence, requestWakeLock]);
+  }, [isOpen, cleanup, stopSilence, startSilence]);
 
-  // 단계별 타이머
   useEffect(() => {
     if (!isOpen) return;
 
@@ -151,18 +122,6 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
 
     return cleanup;
   }, [isOpen, phase, cleanup, playBell, handleStop]);
-
-  // 백그라운드 → 포그라운드 전환 시 Wake Lock 재요청
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        requestWakeLock();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [isOpen, requestWakeLock]);
 
   if (!isOpen) return null;
 
