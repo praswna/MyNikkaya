@@ -29,10 +29,9 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
       style={{
+        backgroundColor: colors.bg,
         opacity: phase === "fadeout" ? 0 : 1,
         transition: "opacity 0.6s ease-out",
-        background: `radial-gradient(circle at center, ${colors.buttonIcon}33 0%, ${colors.buttonIcon}18 25%, ${colors.buttonIcon}08 55%, ${colors.bg} 75%)`,
-        backgroundColor: colors.bg,
       }}
     >
       <style>{`
@@ -42,13 +41,25 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
         }
         @keyframes halo-expand {
           0% { opacity: 0; transform: scale(0.6); }
-          40% { opacity: 1; transform: scale(1); }
-          100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0.7; transform: scale(1.1); }
         }
       `}</style>
 
-      <div style={{ animation: "halo-expand 1.2s ease-out forwards" }}>
-        <div style={{ animation: "spin-in-place 5s linear infinite" }}>
+      <div className="relative flex items-center justify-center">
+        {/* 방사형 그라디언트 후광 - 넓게 */}
+        <div
+          style={{
+            position: "absolute",
+            width: "340px",
+            height: "340px",
+            borderRadius: "50%",
+            background: `radial-gradient(circle, ${colors.buttonIcon}66 0%, ${colors.buttonIcon}33 30%, ${colors.buttonIcon}11 60%, transparent 75%)`,
+            animation: "halo-expand 2s ease-out forwards",
+          }}
+        />
+        {/* 법륜 */}
+        <div style={{ animation: "spin-in-place 5s linear infinite", position: "relative", zIndex: 1 }}>
           <svg width="160" height="160" viewBox="0 0 100 100">
             <circle
               cx={center} cy={center} r={outerRadius}
