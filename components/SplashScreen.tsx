@@ -53,8 +53,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             width: "200px",
             height: "200px",
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${colors.buttonIcon}88 0%, ${colors.buttonIcon}44 40%, transparent 70%)`,
-            animation: "halo-grow 4s ease-out forwards",
+            background: `radial-gradient(circle, ${colors.buttonIcon}44 0%, ${colors.buttonIcon}22 40%, transparent 70%)`,
+            animation: "halo-grow 6s ease-out forwards",
             pointerEvents: "none",
           }}
         />
