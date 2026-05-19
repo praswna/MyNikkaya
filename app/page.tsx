@@ -6,6 +6,7 @@ import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
+import { SplashScreen } from "@/components/SplashScreen";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -33,6 +34,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
   const [isQROpen, setIsQROpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
   const quotesRef = useRef<Quote[]>([]);
@@ -139,7 +141,11 @@ export default function Home() {
   const scaledFontSize = Math.round(metrics.fontSize * fontScale);
 
   return (
-    <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg }}>
+    <>
+      {showSplash && (
+        <SplashScreen colors={colors} onDone={() => setShowSplash(false)} />
+      )}
+      <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg }}>
       {/* 카테고리 */}
       {categories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-1.5 px-4 pt-4 pb-2 max-h-28 overflow-y-auto overscroll-contain">
@@ -257,5 +263,6 @@ export default function Home() {
         colors={colors}
       />
     </div>
+    </>
   );
 }
