@@ -12,6 +12,8 @@ interface RubyTextProps {
   animationKey?: string;
 }
 
+const ANIMATE_CHARS = 200;
+
 function getRubyFontSize(parts: string[]): string {
   const maxLen = Math.max(...parts.map((r) => r.length));
   if (maxLen > 12) return "0.38em";
@@ -20,7 +22,6 @@ function getRubyFontSize(parts: string[]): string {
   return "0.55em";
 }
 
-// 시드 기반 의사 난수 (텍스트별로 일관된 랜덤)
 function seededRandom(seed: number) {
   return ((seed * 9301 + 49297) % 233280) / 233280;
 }
@@ -28,34 +29,58 @@ function seededRandom(seed: number) {
 export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: RubyTextProps) {
   const segments = parseRubyText(text);
 
-  // 각 글자별 랜덤 딜레이 (animationKey가 바뀌면 새로 계산)
   const durations = useMemo(() => {
     const seedBase = animationKey ? animationKey.length : 0;
-    return Array.from({ length: text.length }, (_, i) => {
+    return Array.from({ length: text.length + 100 }, (_, i) => {
       const rand = seededRandom(seedBase + i * 7);
-      return 0.4 + rand * 1.4; // 0.4초 ~ 1.8초
+      return 0.4 + rand * 1.4;
     });
   }, [text, animationKey]);
 
   let charIndex = 0;
 
-  const renderText = (str: string, baseStyle?: React.CSSProperties) => {
-    return Array.from(str).map((char, i) => {
-      const idx = charIndex++;
-      const duration = durations[idx] ?? 1;
-      const shouldAnimate = idx < 20;
+  const animatedChar = (char: string, style?: React.CSSProperties) => {
+    const idx = charIndex++;
+    const shouldAnimate = idx < ANIMATE_CHARS;
+    const duration = durations[idx] ?? 1;
+    return (
+      <span
+        style={{
+          ...style,
+          display: "inline-block",
+          opacity: shouldAnimate ? 0 : 1,
+          animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
+          whiteSpace: "pre",
+        }}
+      >
+        {char}
+      </span>
+    );
+  };
+
+  const animatedRuby = (parts: string[]) => {
+    return parts.map((r, j) => {
+      const chars = Array.from(r).map((char, ci) => {
+        const idx = charIndex++;
+        const shouldAnimate = idx < ANIMATE_CHARS;
+        const duration = durations[idx] ?? 1;
+        return (
+          <span
+            key={ci}
+            style={{
+              display: "inline-block",
+              opacity: shouldAnimate ? 0 : 1,
+              animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
+            }}
+          >
+            {char}
+          </span>
+        );
+      });
       return (
-        <span
-          key={i}
-          style={{
-            ...baseStyle,
-            display: "inline-block",
-            opacity: shouldAnimate ? 0 : 1,
-            animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
-            whiteSpace: "pre",
-          }}
-        >
-          {char}
+        <span key={j}>
+          {chars}
+          {j < parts.length - 1 && <br />}
         </span>
       );
     });
@@ -84,10 +109,11 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
           return <br key={i} />;
         }
         if (seg.type === "ruby" && seg.ruby) {
-          const baseChars = renderText(seg.content, { color: colors.textEmphasis });
           return (
             <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
-              {baseChars}
+              {Array.from(seg.content).map((char, ci) => (
+                <span key={ci}>{animatedChar(char, { color: colors.textEmphasis })}</span>
+              ))}
               <rt style={{
                 fontSize: getRubyFontSize(seg.ruby),
                 color: colors.rubyText,
@@ -95,17 +121,18 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
                 letterSpacing: "0.02em",
                 lineHeight: "1",
               }}>
-                {seg.ruby.map((r, j) => (
-                  <span key={j}>
-                    {r}
-                    {j < seg.ruby!.length - 1 && <br />}
-                  </span>
-                ))}
+                {animatedRuby(seg.ruby)}
               </rt>
             </ruby>
           );
         }
-        return <span key={i}>{renderText(seg.content)}</span>;
+        return (
+          <span key={i}>
+            {Array.from(seg.content).map((char, ci) => (
+              <span key={ci}>{animatedChar(char)}</span>
+            ))}
+          </span>
+        );
       })}
     </p>
   );
