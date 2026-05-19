@@ -54,7 +54,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             height: "200px",
             borderRadius: "50%",
             background: `radial-gradient(circle, ${colors.buttonIcon}88 0%, ${colors.buttonIcon}44 40%, transparent 70%)`,
-            animation: "halo-grow 2.5s ease-out forwards",
+            animation: "halo-grow 4s ease-out forwards",
             pointerEvents: "none",
           }}
         />
