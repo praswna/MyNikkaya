@@ -7,6 +7,11 @@ body {
   overscroll-behavior: none;
 }
 
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* 루비 텍스트 스타일 */
 ruby {
   ruby-align: center;
@@ -19,15 +24,13 @@ rt {
   line-height: 1.2;
 }
 
-/* 스크롤바 스타일 */
+/* 스크롤바 */
 ::-webkit-scrollbar {
   width: 4px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   border-radius: 2px;
 }

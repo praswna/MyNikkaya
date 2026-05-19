@@ -14,13 +14,19 @@ export const metadata: Metadata = {
     ],
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "불교 경전",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2E2B28',
+  themeColor: "#2E2B28",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
