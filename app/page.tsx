@@ -135,7 +135,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg, paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }} />
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />
     );
   }
 
@@ -155,7 +155,7 @@ export default function Home() {
       {showSplash && (
         <SplashScreen colors={colors} onDone={() => setShowSplash(false)} />
       )}
-      <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg, paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg }}>
       {/* 카테고리 */}
       {categories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-1.5 px-4 pt-4 pb-2 max-h-28 overflow-y-auto overscroll-contain">
