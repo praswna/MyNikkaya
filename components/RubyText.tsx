@@ -12,7 +12,7 @@ interface RubyTextProps {
   animationKey?: string;
 }
 
-const ANIMATE_CHARS = 200;
+const ANIMATE_CHARS = 500;
 
 function getRubyFontSize(parts: string[]): string {
   const maxLen = Math.max(...parts.map((r) => r.length));
