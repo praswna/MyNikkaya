@@ -7,11 +7,6 @@ body {
   overscroll-behavior: none;
 }
 
-body {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
 /* 루비 텍스트 스타일 */
 ruby {
   ruby-align: center;
