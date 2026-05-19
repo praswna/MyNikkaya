@@ -158,7 +158,7 @@ export default function Home() {
       <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg }}>
       {/* 카테고리 */}
       {categories.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5 px-4 pt-4 pb-2 max-h-28 overflow-y-auto overscroll-contain">
+        <div className="flex flex-wrap justify-center gap-1 px-2 pt-2 pb-1 max-h-24 overflow-y-auto overscroll-contain">
           <button
             onClick={() => handleCategorySelect(null)}
             className="rounded-full border px-1.5 py-0.5 text-xs font-medium transition-colors"
