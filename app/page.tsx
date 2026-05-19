@@ -135,12 +135,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }}>
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: colors.buttonPrimary, borderTopColor: "transparent" }} />
-          <p className="text-sm" style={{ color: colors.textMuted }}>명언을 불러오는 중...</p>
-        </div>
-      </div>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />
     );
   }
 
