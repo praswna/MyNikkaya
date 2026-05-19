@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 interface DharmaWheelProps {
   size?: number;
   color?: string;
-  rotate?: number; // 현재 회전 각도
+  rotate?: number;
 }
 
 export function DharmaWheel({ size = 34, color = "#FFFBF7", rotate = 0 }: DharmaWheelProps) {
@@ -14,16 +12,6 @@ export function DharmaWheel({ size = 34, color = "#FFFBF7", rotate = 0 }: Dharma
   const innerRadius = 10;
   const strokeWidth = 5;
   const spokeAngles = Array.from({ length: 8 }, (_, i) => (i * 45 * Math.PI) / 180);
-  const prevRotateRef = useRef(rotate);
-  const currentRotateRef = useRef(rotate);
-
-  // 누적 회전각 계산 (항상 증가 방향)
-  useEffect(() => {
-    if (rotate !== prevRotateRef.current) {
-      currentRotateRef.current += 45;
-      prevRotateRef.current = rotate;
-    }
-  });
 
   return (
     <svg
@@ -33,7 +21,7 @@ export function DharmaWheel({ size = 34, color = "#FFFBF7", rotate = 0 }: Dharma
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{
-        transform: `rotate(${currentRotateRef.current}deg)`,
+        transform: `rotate(${rotate}deg)`,
         transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
         transformOrigin: "center",
       }}
