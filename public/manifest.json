@@ -4,8 +4,8 @@
   "description": "불교 명언을 만나보세요",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFBF7",
-  "theme_color": "#8B7355",
+  "background_color": "#2E2B28",
+  "theme_color": "#2E2B28",
   "icons": [
     {
       "src": "/icon-192.png",
