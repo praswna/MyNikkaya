@@ -39,14 +39,17 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes glow-pulse {
-          0%, 100% { filter: drop-shadow(0 0 6px ${colors.buttonIcon}88) drop-shadow(0 0 12px ${colors.buttonIcon}44); }
-          50% { filter: drop-shadow(0 0 14px ${colors.buttonIcon}CC) drop-shadow(0 0 28px ${colors.buttonIcon}66); }
+        @keyframes glow-once {
+          0% { filter: drop-shadow(0 0 4px ${colors.buttonIcon}44) drop-shadow(0 0 8px ${colors.buttonIcon}22); }
+          60% { filter: drop-shadow(0 0 24px ${colors.buttonIcon}DD) drop-shadow(0 0 60px ${colors.buttonIcon}88) drop-shadow(0 0 100px ${colors.buttonIcon}44); }
+          100% { filter: drop-shadow(0 0 16px ${colors.buttonIcon}99) drop-shadow(0 0 40px ${colors.buttonIcon}55); }
         }
       `}</style>
 
-      <div style={{ animation: "spin-in-place 5s linear infinite, glow-pulse 2s ease-in-out infinite" }}>
-        <svg width="120" height="120" viewBox="0 0 100 100">
+      <div style={{
+        animation: "spin-in-place 5s linear infinite, glow-once 1.8s ease-out forwards",
+      }}>
+        <svg width="160" height="160" viewBox="0 0 100 100">
           <circle
             cx={center} cy={center} r={outerRadius}
             stroke={colors.buttonIcon} strokeWidth="4" fill="none"
