@@ -29,9 +29,10 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center"
       style={{
-        backgroundColor: colors.bg,
         opacity: phase === "fadeout" ? 0 : 1,
         transition: "opacity 0.6s ease-out",
+        background: `radial-gradient(circle at center, ${colors.buttonIcon}33 0%, ${colors.buttonIcon}18 25%, ${colors.buttonIcon}08 55%, ${colors.bg} 75%)`,
+        backgroundColor: colors.bg,
       }}
     >
       <style>{`
@@ -39,35 +40,35 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes glow-once {
-          0% { filter: drop-shadow(0 0 4px ${colors.buttonIcon}44) drop-shadow(0 0 8px ${colors.buttonIcon}22); }
-          60% { filter: drop-shadow(0 0 24px ${colors.buttonIcon}DD) drop-shadow(0 0 60px ${colors.buttonIcon}88) drop-shadow(0 0 100px ${colors.buttonIcon}44); }
-          100% { filter: drop-shadow(0 0 16px ${colors.buttonIcon}99) drop-shadow(0 0 40px ${colors.buttonIcon}55); }
+        @keyframes halo-expand {
+          0% { opacity: 0; transform: scale(0.6); }
+          40% { opacity: 1; transform: scale(1); }
+          100% { opacity: 1; transform: scale(1); }
         }
       `}</style>
 
-      <div style={{
-        animation: "spin-in-place 5s linear infinite, glow-once 1.8s ease-out forwards",
-      }}>
-        <svg width="160" height="160" viewBox="0 0 100 100">
-          <circle
-            cx={center} cy={center} r={outerRadius}
-            stroke={colors.buttonIcon} strokeWidth="4" fill="none"
-          />
-          {spokeAngles.map((angle, i) => {
-            const x1 = center + innerRadius * Math.cos(angle);
-            const y1 = center + innerRadius * Math.sin(angle);
-            const x2 = center + outerRadius * Math.cos(angle);
-            const y2 = center + outerRadius * Math.sin(angle);
-            return (
-              <line key={i}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
-              />
-            );
-          })}
-          <circle cx={center} cy={center} r={innerRadius} fill={colors.buttonIcon} />
-        </svg>
+      <div style={{ animation: "halo-expand 1.2s ease-out forwards" }}>
+        <div style={{ animation: "spin-in-place 5s linear infinite" }}>
+          <svg width="160" height="160" viewBox="0 0 100 100">
+            <circle
+              cx={center} cy={center} r={outerRadius}
+              stroke={colors.buttonIcon} strokeWidth="4" fill="none"
+            />
+            {spokeAngles.map((angle, i) => {
+              const x1 = center + innerRadius * Math.cos(angle);
+              const y1 = center + innerRadius * Math.sin(angle);
+              const x2 = center + outerRadius * Math.cos(angle);
+              const y2 = center + outerRadius * Math.sin(angle);
+              return (
+                <line key={i}
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
+                />
+              );
+            })}
+            <circle cx={center} cy={center} r={innerRadius} fill={colors.buttonIcon} />
+          </svg>
+        </div>
       </div>
     </div>
   );
