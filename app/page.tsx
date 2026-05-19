@@ -33,6 +33,7 @@ export default function Home() {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
+  const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
@@ -257,7 +258,7 @@ export default function Home() {
         onThemeToggle={handleThemeToggle}
         fontScale={fontScale}
         onFontScaleChange={handleFontScaleChange}
-        onMeditationStart={() => setIsMeditationOpen(true)}
+        onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         colors={colors}
       />
@@ -270,6 +271,7 @@ export default function Home() {
         isOpen={isMeditationOpen}
         onClose={() => setIsMeditationOpen(false)}
         colors={colors}
+        duration={meditationDuration}
       />
     </div>
     </>

@@ -7,9 +7,11 @@ interface MeditationModalProps {
   isOpen: boolean;
   onClose: () => void;
   colors: ThemeColors;
+  duration?: number; // 초 단위
 }
 
-const TOTAL_SECONDS = 60 * 60; // 1시간
+const TOTAL_SECONDS_1H = 60 * 60;
+const TOTAL_SECONDS_30M = 30 * 60;
 const START_DELAY_SECONDS = 5;
 
 function formatTime(seconds: number): string {
@@ -19,9 +21,9 @@ function formatTime(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProps) {
+export function MeditationModal({ isOpen, onClose, colors, duration = TOTAL_SECONDS_1H }: MeditationModalProps) {
   const [phase, setPhase] = useState<"waiting" | "meditating" | "done">("waiting");
-  const [remaining, setRemaining] = useState(TOTAL_SECONDS);
+  const [remaining, setRemaining] = useState(duration);
   const [countdown, setCountdown] = useState(START_DELAY_SECONDS);
   const bellRef = useRef<HTMLAudioElement | null>(null);
   const silenceRef = useRef<HTMLAudioElement | null>(null);
@@ -73,7 +75,7 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
     cleanup();
     stopSilence();
     setPhase("waiting");
-    setRemaining(TOTAL_SECONDS);
+    setRemaining(duration);
     setCountdown(START_DELAY_SECONDS);
     onClose();
   }, [cleanup, stopSilence, onClose]);
@@ -83,7 +85,7 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
       cleanup();
       stopSilence();
       setPhase("waiting");
-      setRemaining(TOTAL_SECONDS);
+      setRemaining(duration);
       setCountdown(START_DELAY_SECONDS);
       return;
     }
@@ -103,7 +105,7 @@ export function MeditationModal({ isOpen, onClose, colors }: MeditationModalProp
           cleanup();
           playBell();
           setPhase("meditating");
-          endTimeRef.current = Date.now() + TOTAL_SECONDS * 1000;
+          endTimeRef.current = Date.now() + duration * 1000;
         }
       }, 1000);
     } else if (phase === "meditating") {

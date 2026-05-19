@@ -15,7 +15,7 @@ interface SettingsModalProps {
   onThemeToggle: () => void;
   fontScale: number;
   onFontScaleChange: (scale: number) => void;
-  onMeditationStart: () => void;
+  onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   colors: ThemeColors;
 }
@@ -123,19 +123,22 @@ export function SettingsModal({
         </div>
 
         {/* 수행 시작 버튼 */}
-        <button
-          onClick={() => {
-            onMeditationStart();
-            onClose();
-          }}
-          className="w-full rounded-xl py-3 text-sm font-medium transition-colors mb-5"
-          style={{
-            backgroundColor: colors.categorySelected,
-            color: colors.categorySelectedText,
-          }}
-        >
-          🔔 수행 시작 (1시간)
-        </button>
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => { onMeditationStart(30 * 60); onClose(); }}
+            className="flex-1 rounded-xl py-3 text-sm font-medium transition-colors"
+            style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+          >
+            🔔 30분
+          </button>
+          <button
+            onClick={() => { onMeditationStart(60 * 60); onClose(); }}
+            className="flex-1 rounded-xl py-3 text-sm font-medium transition-colors"
+            style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+          >
+            🔔 1시간
+          </button>
+        </div>
 
         {/* QR 코드 버튼 */}
         <button
