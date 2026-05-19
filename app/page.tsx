@@ -43,6 +43,19 @@ export default function Home() {
 
   const colors = THEMES[theme];
 
+  // 상태바 색상 동적 변경
+  useEffect(() => {
+    const meta = document.querySelector("meta[name='theme-color']") as HTMLMetaElement | null;
+    if (meta) {
+      meta.content = colors.bg;
+    } else {
+      const newMeta = document.createElement("meta");
+      newMeta.name = "theme-color";
+      newMeta.content = colors.bg;
+      document.head.appendChild(newMeta);
+    }
+  }, [colors.bg]);
+
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem(STORAGE_KEY_THEME) as Theme | null;
