@@ -37,6 +37,19 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         if (seg.type === "newline") {
           return <br key={i} />;
         }
+        if (seg.type === "link") {
+          return (
+            <a
+              key={i}
+              href={seg.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: colors.textEmphasis, textDecoration: "underline", wordBreak: "break-all" }}
+            >
+              {seg.content}
+            </a>
+          );
+        }
         if (seg.type === "ruby" && seg.ruby) {
           return (
             <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>

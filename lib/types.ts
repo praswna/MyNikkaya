@@ -5,7 +5,7 @@ export interface Quote {
 }
 
 export interface RubySegment {
-  type: "text" | "ruby" | "newline";
+  type: "text" | "ruby" | "newline" | "link";
   content: string;
   ruby?: string[];
 }
