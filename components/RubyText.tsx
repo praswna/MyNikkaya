@@ -49,7 +49,7 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
           ...style,
           display: "inline-block",
           opacity: shouldAnimate ? 0 : 1,
-          animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
+          animation: shouldAnimate ? `char-fade-in ${duration}s ease-out both` : "none",
           whiteSpace: "pre",
         }}
       >
@@ -70,7 +70,7 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
             style={{
               display: "inline-block",
               opacity: shouldAnimate ? 0 : 1,
-              animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
+              animation: shouldAnimate ? `char-fade-in ${duration}s ease-out both` : "none",
             }}
           >
             {char}
