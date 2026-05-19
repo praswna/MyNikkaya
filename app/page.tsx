@@ -191,12 +191,10 @@ export default function Home() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
         <div className="flex min-h-full items-center justify-center">
           <RubyText
-            key={currentQuote.id}
             text={currentQuote.text}
             fontSize={scaledFontSize}
             lineHeight={metrics.lineHeight}
             colors={colors}
-            animationKey={currentQuote.id}
           />
         </div>
       </div>
