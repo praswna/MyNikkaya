@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { parseRubyText } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
 
@@ -8,6 +9,7 @@ interface RubyTextProps {
   fontSize: number;
   lineHeight: string;
   colors: ThemeColors;
+  animationKey?: string;
 }
 
 function getRubyFontSize(parts: string[]): string {
@@ -18,8 +20,45 @@ function getRubyFontSize(parts: string[]): string {
   return "0.55em";
 }
 
-export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) {
+// 시드 기반 의사 난수 (텍스트별로 일관된 랜덤)
+function seededRandom(seed: number) {
+  return ((seed * 9301 + 49297) % 233280) / 233280;
+}
+
+export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: RubyTextProps) {
   const segments = parseRubyText(text);
+
+  // 각 글자별 랜덤 딜레이 (animationKey가 바뀌면 새로 계산)
+  const durations = useMemo(() => {
+    const seedBase = animationKey ? animationKey.length : 0;
+    return Array.from({ length: text.length }, (_, i) => {
+      const rand = seededRandom(seedBase + i * 7);
+      return 0.4 + rand * 1.4; // 0.4초 ~ 1.8초
+    });
+  }, [text, animationKey]);
+
+  let charIndex = 0;
+
+  const renderText = (str: string, baseStyle?: React.CSSProperties) => {
+    return Array.from(str).map((char, i) => {
+      const idx = charIndex++;
+      const duration = durations[idx] ?? 1;
+      return (
+        <span
+          key={i}
+          style={{
+            ...baseStyle,
+            display: "inline-block",
+            opacity: 0,
+            animation: `char-fade-in ${duration}s ease-out forwards`,
+            whiteSpace: "pre",
+          }}
+        >
+          {char}
+        </span>
+      );
+    });
+  };
 
   return (
     <p
@@ -33,14 +72,21 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         maxWidth: "100%",
       }}
     >
+      <style>{`
+        @keyframes char-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
       {segments.map((seg, i) => {
         if (seg.type === "newline") {
           return <br key={i} />;
         }
         if (seg.type === "ruby" && seg.ruby) {
+          const baseChars = renderText(seg.content, { color: colors.textEmphasis });
           return (
             <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
-              {seg.content}
+              {baseChars}
               <rt style={{
                 fontSize: getRubyFontSize(seg.ruby),
                 color: colors.rubyText,
@@ -58,7 +104,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
             </ruby>
           );
         }
-        return <span key={i}>{seg.content}</span>;
+        return <span key={i}>{renderText(seg.content)}</span>;
       })}
     </p>
   );
