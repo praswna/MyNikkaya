@@ -1,0 +1,32 @@
+name: Daily CSV Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 UTC 00:00 (한국시간 09:00)
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download CSV from Google Sheets
+        run: |
+          curl -L "${{ secrets.GOOGLE_SHEETS_URL }}" -o public/quotes_export.csv
+          echo "CSV 다운로드 완료"
+          wc -l public/quotes_export.csv
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add public/quotes_export.csv
+          if git diff --staged --quiet; then
+            echo "변경사항 없음 - 커밋 생략"
+          else
+            git commit -m "자동 CSV 업데이트 $(date '+%Y-%m-%d')"
+            git push
+          fi
