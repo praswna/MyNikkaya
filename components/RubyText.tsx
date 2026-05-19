@@ -43,14 +43,15 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
     return Array.from(str).map((char, i) => {
       const idx = charIndex++;
       const duration = durations[idx] ?? 1;
+      const shouldAnimate = idx < 20;
       return (
         <span
           key={i}
           style={{
             ...baseStyle,
             display: "inline-block",
-            opacity: 0,
-            animation: `char-fade-in ${duration}s ease-out forwards`,
+            opacity: shouldAnimate ? 0 : 1,
+            animation: shouldAnimate ? `char-fade-in ${duration}s ease-out forwards` : "none",
             whiteSpace: "pre",
           }}
         >
