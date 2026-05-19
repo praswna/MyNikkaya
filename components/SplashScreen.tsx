@@ -27,7 +27,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
       style={{
         backgroundColor: colors.bg,
         opacity: phase === "fadeout" ? 0 : 1,
@@ -39,23 +39,23 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes halo-expand {
-          0% { opacity: 0; transform: scale(0.6); }
-          50% { opacity: 1; transform: scale(1); }
-          100% { opacity: 0.7; transform: scale(1.1); }
+        @keyframes halo-grow {
+          0% { transform: scale(0.3); opacity: 0.9; }
+          100% { transform: scale(6); opacity: 0; }
         }
       `}</style>
 
       <div className="relative flex items-center justify-center">
-        {/* 방사형 그라디언트 후광 - 넓게 */}
+        {/* 계속 커지는 후광 */}
         <div
           style={{
             position: "absolute",
-            width: "340px",
-            height: "340px",
+            width: "200px",
+            height: "200px",
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${colors.buttonIcon}66 0%, ${colors.buttonIcon}33 30%, ${colors.buttonIcon}11 60%, transparent 75%)`,
-            animation: "halo-expand 2s ease-out forwards",
+            background: `radial-gradient(circle, ${colors.buttonIcon}88 0%, ${colors.buttonIcon}44 40%, transparent 70%)`,
+            animation: "halo-grow 2.5s ease-out forwards",
+            pointerEvents: "none",
           }}
         />
         {/* 법륜 */}
