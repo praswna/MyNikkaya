@@ -16,6 +16,7 @@ interface SettingsModalProps {
   fontScale: number;
   onFontScaleChange: (scale: number) => void;
   onMeditationStart: () => void;
+  onQROpen: () => void;
   colors: ThemeColors;
 }
 
@@ -27,6 +28,7 @@ export function SettingsModal({
   fontScale,
   onFontScaleChange,
   onMeditationStart,
+  onQROpen,
   colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
@@ -133,6 +135,19 @@ export function SettingsModal({
           }}
         >
           🔔 수행 시작 (1시간)
+        </button>
+
+        {/* QR 코드 버튼 */}
+        <button
+          onClick={onQROpen}
+          className="w-full rounded-xl py-2 text-sm font-medium transition-colors mb-3"
+          style={{
+            backgroundColor: colors.bg,
+            color: colors.textMuted,
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          📱 QR 코드
         </button>
 
         {/* 링크 */}

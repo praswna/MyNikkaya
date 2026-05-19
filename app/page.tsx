@@ -5,6 +5,7 @@ import { DharmaWheel } from "@/components/DharmaWheel";
 import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
+import { QRModal } from "@/components/QRModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -31,6 +32,7 @@ export default function Home() {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
+  const [isQROpen, setIsQROpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
   const quotesRef = useRef<Quote[]>([]);
@@ -241,6 +243,12 @@ export default function Home() {
         fontScale={fontScale}
         onFontScaleChange={handleFontScaleChange}
         onMeditationStart={() => setIsMeditationOpen(true)}
+        onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
+        colors={colors}
+      />
+      <QRModal
+        isOpen={isQROpen}
+        onClose={() => setIsQROpen(false)}
         colors={colors}
       />
       <MeditationModal
