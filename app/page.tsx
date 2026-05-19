@@ -34,6 +34,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
   const [isQROpen, setIsQROpen] = useState(false);
+  const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
@@ -76,6 +77,7 @@ export default function Home() {
     setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
     setSyncStatus(null);
     scrollRef.current?.scrollTo({ top: 0 });
+    setWheelRotate((prev) => prev + 45);
   }, [selectedCategory]);
 
   const handleSync = useCallback(async () => {
@@ -215,7 +217,7 @@ export default function Home() {
             className="flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
             style={{ backgroundColor: colors.buttonPrimary }}
           >
-            <DharmaWheel size={34} color={colors.buttonIcon} />
+            <DharmaWheel size={34} color={colors.buttonIcon} rotate={wheelRotate} />
           </button>
 
           {/* 동기화 버튼 */}
