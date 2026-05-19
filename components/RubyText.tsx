@@ -33,7 +33,7 @@ export function RubyText({ text, fontSize, lineHeight, colors, animationKey }: R
     const seedBase = animationKey ? animationKey.length : 0;
     return Array.from({ length: text.length + 100 }, (_, i) => {
       const rand = seededRandom(seedBase + i * 7);
-      return 0.5;
+      return 0.8;
     });
   }, [text, animationKey]);
 
