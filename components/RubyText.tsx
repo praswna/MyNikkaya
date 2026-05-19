@@ -44,7 +44,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
               href={seg.content}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: colors.textEmphasis, textDecoration: "underline", wordBreak: "break-all" }}
+              style={{ color: colors.textEmphasis, textDecoration: "underline", wordBreak: "break-all", fontSize: "0.4em" }}
             >
               {seg.content}
             </a>
