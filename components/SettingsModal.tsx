@@ -1,6 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Theme, ThemeColors } from "@/lib/theme";
+
+interface Link {
+  name: string;
+  url: string;
+}
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -23,6 +29,16 @@ export function SettingsModal({
   onMeditationStart,
   colors,
 }: SettingsModalProps) {
+  const [links, setLinks] = useState<Link[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/links.json")
+      .then((r) => r.json())
+      .then((data) => setLinks(data))
+      .catch(() => {});
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const isLight = theme === "light";
@@ -110,7 +126,7 @@ export function SettingsModal({
             onMeditationStart();
             onClose();
           }}
-          className="w-full rounded-xl py-3 text-sm font-medium transition-colors"
+          className="w-full rounded-xl py-3 text-sm font-medium transition-colors mb-5"
           style={{
             backgroundColor: colors.categorySelected,
             color: colors.categorySelectedText,
@@ -118,6 +134,32 @@ export function SettingsModal({
         >
           🔔 수행 시작 (1시간)
         </button>
+
+        {/* 링크 */}
+        {links.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-semibold tracking-wide" style={{ color: colors.textMuted }}>
+              🔗 참고 사이트
+            </p>
+            <div className="flex flex-col gap-1">
+              {links.map((link) => (
+                <a
+                  key={link.url}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg px-3 py-2 text-sm transition-colors"
+                  style={{
+                    backgroundColor: colors.bg,
+                    color: colors.text,
+                  }}
+                >
+                  {link.name}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
