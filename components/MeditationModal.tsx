@@ -26,40 +26,50 @@ function getAudioSrc(duration: number): string {
 export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: MeditationModalProps) {
   const [phase, setPhase] = useState<"loading" | "meditating" | "done">("loading");
   const [remaining, setRemaining] = useState(duration);
-  const [progress, setProgress] = useState(0); // 다운로드 진행률
+  const [progress, setProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
-  const cleanup = useCallback(() => {
+  // 미디어 세션 및 오디오 완전 정리
+  const cleanupAudio = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
     if (audioRef.current) {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      audioRef.current.src = "";
+      audioRef.current.load();
+      audioRef.current = null;
+    }
+    // MediaSession 메타데이터 제거
+    if ("mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.playbackState = "none";
+      } catch {}
     }
   }, []);
 
   const handleStop = useCallback(() => {
-    cleanup();
+    cleanupAudio();
     setPhase("loading");
     setRemaining(duration);
     setProgress(0);
     onClose();
-  }, [cleanup, onClose, duration]);
+  }, [cleanupAudio, onClose, duration]);
 
-  // 모달 열림 시 오디오 로드 및 재생
   useEffect(() => {
     if (!isOpen) {
-      cleanup();
+      cleanupAudio();
       return;
     }
 
     const src = getAudioSrc(duration);
     const audio = new Audio(src);
     audio.preload = "auto";
+    audio.volume = 0.8; // 80% 볼륨
     audioRef.current = audio;
 
     const handleProgress = () => {
@@ -72,18 +82,27 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
 
     const handleCanPlayThrough = () => {
       setProgress(100);
-      // 재생 시작
       audio.play().then(() => {
         setPhase("meditating");
         startTimeRef.current = Date.now();
 
-        // 남은 시간 업데이트
+        // MediaSession 메타데이터
+        if ("mediaSession" in navigator) {
+          try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: "수행",
+              artist: "불교 경전",
+            });
+            navigator.mediaSession.playbackState = "playing";
+          } catch {}
+        }
+
         intervalRef.current = setInterval(() => {
           const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
           const left = Math.max(0, duration - elapsed);
           setRemaining(left);
           if (left <= 0) {
-            cleanup();
+            cleanupAudio();
             setPhase("done");
             setTimeout(() => handleStop(), 15000);
           }
@@ -93,13 +112,16 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
 
     audio.addEventListener("progress", handleProgress);
     audio.addEventListener("canplaythrough", handleCanPlayThrough);
+    audio.addEventListener("ended", () => {
+      cleanupAudio();
+    });
 
     return () => {
       audio.removeEventListener("progress", handleProgress);
       audio.removeEventListener("canplaythrough", handleCanPlayThrough);
-      cleanup();
+      cleanupAudio();
     };
-  }, [isOpen, duration, cleanup, handleStop]);
+  }, [isOpen, duration, cleanupAudio, handleStop]);
 
   if (!isOpen) return null;
 
