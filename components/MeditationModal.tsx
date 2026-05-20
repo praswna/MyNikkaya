@@ -69,7 +69,7 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
     const src = getAudioSrc(duration);
     const audio = new Audio(src);
     audio.preload = "auto";
-    audio.volume = 0.8; // 80% 볼륨
+    audio.volume = 1.0; // 100% 볼륨
     audioRef.current = audio;
 
     const handleProgress = () => {
