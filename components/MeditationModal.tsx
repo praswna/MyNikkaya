@@ -7,11 +7,9 @@ interface MeditationModalProps {
   isOpen: boolean;
   onClose: () => void;
   colors: ThemeColors;
-  duration?: number; // 초 단위
+  duration?: number;
 }
 
-const TOTAL_SECONDS_1H = 60 * 60;
-const TOTAL_SECONDS_30M = 30 * 60;
 const START_DELAY_SECONDS = 5;
 
 function formatTime(seconds: number): string {
@@ -21,46 +19,82 @@ function formatTime(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function MeditationModal({ isOpen, onClose, colors, duration = TOTAL_SECONDS_1H }: MeditationModalProps) {
+export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: MeditationModalProps) {
   const [phase, setPhase] = useState<"waiting" | "meditating" | "done">("waiting");
   const [remaining, setRemaining] = useState(duration);
   const [countdown, setCountdown] = useState(START_DELAY_SECONDS);
-  const bellRef = useRef<HTMLAudioElement | null>(null);
-  const silenceRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const bellBufferRef = useRef<AudioBuffer | null>(null);
+  const silenceSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const endTimeRef = useRef<number>(0);
 
-  const playBell = useCallback(() => {
+  // AudioContext 및 종소리 버퍼 로드
+  const initAudio = useCallback(async () => {
     try {
-      if (bellRef.current) {
-        bellRef.current.currentTime = 0;
-        bellRef.current.play().catch((e) => console.warn("종소리 재생 실패:", e));
+      if (!audioCtxRef.current) {
+        const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        audioCtxRef.current = new AC();
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        await audioCtxRef.current.resume();
+      }
+      if (!bellBufferRef.current) {
+        const response = await fetch("/bell.m4a");
+        const arrayBuffer = await response.arrayBuffer();
+        bellBufferRef.current = await audioCtxRef.current.decodeAudioData(arrayBuffer);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Audio init 실패:", e);
     }
   }, []);
 
+  // 무음 트랙 시작 (백그라운드 유지)
   const startSilence = useCallback(() => {
     try {
-      if (silenceRef.current) {
-        silenceRef.current.loop = true;
-        silenceRef.current.volume = 0.01;
-        silenceRef.current.play().catch((e) => console.warn("무음 재생 실패:", e));
-      }
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      // 1초짜리 무음 버퍼 생성하고 무한 루프
+      const sampleRate = ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, sampleRate, sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.001;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start();
+      silenceSourceRef.current = source;
     } catch (e) {
-      console.error(e);
+      console.error("무음 트랙 시작 실패:", e);
     }
   }, []);
 
   const stopSilence = useCallback(() => {
     try {
-      if (silenceRef.current) {
-        silenceRef.current.pause();
-        silenceRef.current.currentTime = 0;
+      if (silenceSourceRef.current) {
+        silenceSourceRef.current.stop();
+        silenceSourceRef.current.disconnect();
+        silenceSourceRef.current = null;
       }
     } catch (e) {
       console.error(e);
+    }
+  }, []);
+
+  // 종소리 재생
+  const playBell = useCallback(() => {
+    try {
+      const ctx = audioCtxRef.current;
+      const buffer = bellBufferRef.current;
+      if (!ctx || !buffer) return;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+    } catch (e) {
+      console.error("종소리 재생 실패:", e);
     }
   }, []);
 
@@ -74,24 +108,27 @@ export function MeditationModal({ isOpen, onClose, colors, duration = TOTAL_SECO
   const handleStop = useCallback(() => {
     cleanup();
     stopSilence();
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(console.error);
+      audioCtxRef.current = null;
+      bellBufferRef.current = null;
+    }
     setPhase("waiting");
     setRemaining(duration);
     setCountdown(START_DELAY_SECONDS);
     onClose();
-  }, [cleanup, stopSilence, onClose]);
+  }, [cleanup, stopSilence, onClose, duration]);
 
+  // 모달 열림: 오디오 초기화 + 무음 트랙 시작
   useEffect(() => {
-    if (!isOpen) {
-      cleanup();
-      stopSilence();
-      setPhase("waiting");
-      setRemaining(duration);
-      setCountdown(START_DELAY_SECONDS);
-      return;
-    }
-    startSilence();
-  }, [isOpen, cleanup, stopSilence, startSilence]);
+    if (!isOpen) return;
+    (async () => {
+      await initAudio();
+      startSilence();
+    })();
+  }, [isOpen, initAudio, startSilence]);
 
+  // 타이머 단계별 처리
   useEffect(() => {
     if (!isOpen) return;
 
@@ -123,58 +160,51 @@ export function MeditationModal({ isOpen, onClose, colors, duration = TOTAL_SECO
     }
 
     return cleanup;
-  }, [isOpen, phase, cleanup, playBell, handleStop]);
+  }, [isOpen, phase, cleanup, playBell, handleStop, duration]);
 
   if (!isOpen) return null;
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-        style={{ backgroundColor: colors.bg }}
-      >
-        <audio ref={bellRef} src="/bell.m4a" preload="auto" />
-        <audio ref={silenceRef} src="/silence.mp3" preload="auto" loop />
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+      style={{ backgroundColor: colors.bg }}
+    >
+      {phase === "waiting" && (
+        <>
+          <p className="mb-4 text-lg" style={{ color: colors.textMuted }}>곧 수행이 시작됩니다</p>
+          <p className="text-7xl font-light" style={{ color: colors.text }}>{countdown}</p>
+        </>
+      )}
 
-        {phase === "waiting" && (
-          <>
-            <p className="mb-4 text-lg" style={{ color: colors.textMuted }}>곧 수행이 시작됩니다</p>
-            <p className="text-7xl font-light" style={{ color: colors.text }}>
-              {countdown}
-            </p>
-          </>
-        )}
+      {phase === "meditating" && (
+        <>
+          <p className="mb-6 text-base" style={{ color: colors.textMuted }}>수행 중</p>
+          <p className="text-6xl font-light tabular-nums tracking-wider" style={{ color: colors.text }}>
+            {formatTime(remaining)}
+          </p>
+        </>
+      )}
 
-        {phase === "meditating" && (
-          <>
-            <p className="mb-6 text-base" style={{ color: colors.textMuted }}>수행 중</p>
-            <p className="text-6xl font-light tabular-nums tracking-wider" style={{ color: colors.text }}>
-              {formatTime(remaining)}
-            </p>
-          </>
-        )}
+      {phase === "done" && (
+        <>
+          <p className="mb-4 text-2xl font-light" style={{ color: colors.text }}>수행이 끝났습니다</p>
+          <p className="text-sm" style={{ color: colors.textMuted }}>잠시 후 닫힙니다</p>
+        </>
+      )}
 
-        {phase === "done" && (
-          <>
-            <p className="mb-4 text-2xl font-light" style={{ color: colors.text }}>수행이 끝났습니다</p>
-            <p className="text-sm" style={{ color: colors.textMuted }}>잠시 후 닫힙니다</p>
-          </>
-        )}
-
-        {(phase === "waiting" || phase === "meditating") && (
-          <button
-            onClick={handleStop}
-            className="mt-12 rounded-full px-6 py-2 text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: colors.buttonPrimary,
-              color: colors.buttonIcon,
-              border: `1px solid ${colors.border}`,
-            }}
-          >
-            중지
-          </button>
-        )}
-      </div>
-    </>
+      {(phase === "waiting" || phase === "meditating") && (
+        <button
+          onClick={handleStop}
+          className="mt-12 rounded-full px-6 py-2 text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: colors.buttonPrimary,
+            color: colors.buttonIcon,
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          중지
+        </button>
+      )}
+    </div>
   );
 }

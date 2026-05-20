@@ -125,6 +125,13 @@ export function SettingsModal({
         {/* 수행 시작 버튼 */}
         <div className="flex gap-2 mb-5">
           <button
+            onClick={() => { onMeditationStart(15 * 60); onClose(); }}
+            className="flex-1 rounded-xl py-3 text-sm font-medium transition-colors"
+            style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+          >
+            🔔 15분
+          </button>
+          <button
             onClick={() => { onMeditationStart(30 * 60); onClose(); }}
             className="flex-1 rounded-xl py-3 text-sm font-medium transition-colors"
             style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
