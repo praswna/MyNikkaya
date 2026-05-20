@@ -10,8 +10,6 @@ interface MeditationModalProps {
   duration?: number;
 }
 
-const START_DELAY_SECONDS = 5;
-
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -19,148 +17,89 @@ function formatTime(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+function getAudioSrc(duration: number): string {
+  if (duration <= 15 * 60) return "/bell_15m.mp3";
+  if (duration <= 30 * 60) return "/bell_30m.mp3";
+  return "/bell_1h.mp3";
+}
+
 export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: MeditationModalProps) {
-  const [phase, setPhase] = useState<"waiting" | "meditating" | "done">("waiting");
+  const [phase, setPhase] = useState<"loading" | "meditating" | "done">("loading");
   const [remaining, setRemaining] = useState(duration);
-  const [countdown, setCountdown] = useState(START_DELAY_SECONDS);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const bellBufferRef = useRef<AudioBuffer | null>(null);
-  const silenceSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const [progress, setProgress] = useState(0); // 다운로드 진행률
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const endTimeRef = useRef<number>(0);
-
-  // AudioContext 및 종소리 버퍼 로드
-  const initAudio = useCallback(async () => {
-    try {
-      if (!audioCtxRef.current) {
-        const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        audioCtxRef.current = new AC();
-      }
-      if (audioCtxRef.current.state === "suspended") {
-        await audioCtxRef.current.resume();
-      }
-      if (!bellBufferRef.current) {
-        const response = await fetch("/bell.m4a");
-        const arrayBuffer = await response.arrayBuffer();
-        bellBufferRef.current = await audioCtxRef.current.decodeAudioData(arrayBuffer);
-      }
-    } catch (e) {
-      console.error("Audio init 실패:", e);
-    }
-  }, []);
-
-  // 무음 트랙 시작 (백그라운드 유지)
-  const startSilence = useCallback(() => {
-    try {
-      const ctx = audioCtxRef.current;
-      if (!ctx) return;
-      // 1초짜리 무음 버퍼 생성하고 무한 루프
-      const sampleRate = ctx.sampleRate;
-      const buffer = ctx.createBuffer(1, sampleRate, sampleRate);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.001;
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      source.start();
-      silenceSourceRef.current = source;
-    } catch (e) {
-      console.error("무음 트랙 시작 실패:", e);
-    }
-  }, []);
-
-  const stopSilence = useCallback(() => {
-    try {
-      if (silenceSourceRef.current) {
-        silenceSourceRef.current.stop();
-        silenceSourceRef.current.disconnect();
-        silenceSourceRef.current = null;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
-  // 종소리 재생
-  const playBell = useCallback(() => {
-    try {
-      const ctx = audioCtxRef.current;
-      const buffer = bellBufferRef.current;
-      if (!ctx || !buffer) return;
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.start();
-    } catch (e) {
-      console.error("종소리 재생 실패:", e);
-    }
-  }, []);
+  const startTimeRef = useRef<number>(0);
 
   const cleanup = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   }, []);
 
   const handleStop = useCallback(() => {
     cleanup();
-    stopSilence();
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(console.error);
-      audioCtxRef.current = null;
-      bellBufferRef.current = null;
-    }
-    setPhase("waiting");
+    setPhase("loading");
     setRemaining(duration);
-    setCountdown(START_DELAY_SECONDS);
+    setProgress(0);
     onClose();
-  }, [cleanup, stopSilence, onClose, duration]);
+  }, [cleanup, onClose, duration]);
 
-  // 모달 열림: 오디오 초기화 + 무음 트랙 시작
+  // 모달 열림 시 오디오 로드 및 재생
   useEffect(() => {
-    if (!isOpen) return;
-    (async () => {
-      await initAudio();
-      startSilence();
-    })();
-  }, [isOpen, initAudio, startSilence]);
-
-  // 타이머 단계별 처리
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (phase === "waiting") {
-      let count = START_DELAY_SECONDS;
-      setCountdown(count);
-      intervalRef.current = setInterval(() => {
-        count -= 1;
-        setCountdown(count);
-        if (count <= 0) {
-          cleanup();
-          playBell();
-          setPhase("meditating");
-          endTimeRef.current = Date.now() + duration * 1000;
-        }
-      }, 1000);
-    } else if (phase === "meditating") {
-      intervalRef.current = setInterval(() => {
-        const remainingMs = Math.max(0, endTimeRef.current - Date.now());
-        const remainingSec = Math.ceil(remainingMs / 1000);
-        setRemaining(remainingSec);
-        if (remainingSec <= 0) {
-          cleanup();
-          playBell();
-          setPhase("done");
-          setTimeout(() => handleStop(), 15000);
-        }
-      }, 250);
+    if (!isOpen) {
+      cleanup();
+      return;
     }
 
-    return cleanup;
-  }, [isOpen, phase, cleanup, playBell, handleStop, duration]);
+    const src = getAudioSrc(duration);
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    audioRef.current = audio;
+
+    const handleProgress = () => {
+      if (audio.buffered.length > 0) {
+        const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+        const total = audio.duration || duration;
+        setProgress(Math.round((bufferedEnd / total) * 100));
+      }
+    };
+
+    const handleCanPlayThrough = () => {
+      setProgress(100);
+      // 재생 시작
+      audio.play().then(() => {
+        setPhase("meditating");
+        startTimeRef.current = Date.now();
+
+        // 남은 시간 업데이트
+        intervalRef.current = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          const left = Math.max(0, duration - elapsed);
+          setRemaining(left);
+          if (left <= 0) {
+            cleanup();
+            setPhase("done");
+            setTimeout(() => handleStop(), 15000);
+          }
+        }, 250);
+      }).catch((e) => console.error("재생 실패:", e));
+    };
+
+    audio.addEventListener("progress", handleProgress);
+    audio.addEventListener("canplaythrough", handleCanPlayThrough);
+
+    return () => {
+      audio.removeEventListener("progress", handleProgress);
+      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+      cleanup();
+    };
+  }, [isOpen, duration, cleanup, handleStop]);
 
   if (!isOpen) return null;
 
@@ -169,10 +108,10 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
       className="fixed inset-0 z-50 flex flex-col items-center justify-center"
       style={{ backgroundColor: colors.bg }}
     >
-      {phase === "waiting" && (
+      {phase === "loading" && (
         <>
-          <p className="mb-4 text-lg" style={{ color: colors.textMuted }}>곧 수행이 시작됩니다</p>
-          <p className="text-7xl font-light" style={{ color: colors.text }}>{countdown}</p>
+          <p className="mb-4 text-lg" style={{ color: colors.textMuted }}>준비 중...</p>
+          <p className="text-5xl font-light" style={{ color: colors.text }}>{progress}%</p>
         </>
       )}
 
@@ -192,7 +131,7 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
         </>
       )}
 
-      {(phase === "waiting" || phase === "meditating") && (
+      {(phase === "loading" || phase === "meditating") && (
         <button
           onClick={handleStop}
           className="mt-12 rounded-full px-6 py-2 text-sm font-medium transition-colors"
