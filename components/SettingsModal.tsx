@@ -38,43 +38,12 @@ export function SettingsModal({
   colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
-  const [cachedFiles, setCachedFiles] = useState<Set<string>>(new Set());
-
   useEffect(() => {
     if (!isOpen) return;
     fetch("/links.json")
       .then((r) => r.json())
       .then((data) => setLinks(data))
       .catch(() => {});
-  }, [isOpen]);
-
-  // 캐시된 종 파일 확인
-  useEffect(() => {
-    if (!isOpen) return;
-    (async () => {
-      const cached = new Set<string>();
-      if ("caches" in window) {
-        try {
-          const cacheNames = await caches.keys();
-          for (const cacheName of cacheNames) {
-            const cache = await caches.open(cacheName);
-            for (const file of BELL_FILES) {
-              const match = await cache.match(file.src);
-              if (match) cached.add(file.src);
-            }
-          }
-        } catch {}
-      }
-      // HTTP 캐시 확인 (HEAD 요청으로 확인)
-      for (const file of BELL_FILES) {
-        if (cached.has(file.src)) continue;
-        try {
-          const res = await fetch(file.src, { method: "HEAD", cache: "only-if-cached", mode: "same-origin" });
-          if (res.ok) cached.add(file.src);
-        } catch {}
-      }
-      setCachedFiles(cached);
-    })();
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -160,22 +129,16 @@ export function SettingsModal({
 
         {/* 수행 시작 버튼 */}
         <div className="flex gap-2 mb-5">
-          {BELL_FILES.map((file) => {
-            const isCached = cachedFiles.has(file.src);
-            return (
-              <button
-                key={file.duration}
-                onClick={() => { onMeditationStart(file.duration); onClose(); }}
-                className="flex-1 rounded-xl py-2 text-sm font-medium transition-colors flex flex-col items-center"
-                style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-              >
-                <span>🔔 {file.label}</span>
-                <span className="text-[10px] mt-0.5 opacity-80" style={{ color: colors.categorySelectedText }}>
-                  {isCached ? "준비됨" : "다운로드 필요"}
-                </span>
-              </button>
-            );
-          })}
+          {BELL_FILES.map((file) => (
+            <button
+              key={file.duration}
+              onClick={() => { onMeditationStart(file.duration); onClose(); }}
+              className="flex-1 rounded-xl py-3 text-sm font-medium transition-colors"
+              style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+            >
+              🔔 {file.label}
+            </button>
+          ))}
         </div>
 
         {/* QR 코드 버튼 */}
