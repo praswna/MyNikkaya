@@ -51,7 +51,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           width: "200px",
           height: "200px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, #F8E8C8 0%, #F8E8C899 40%, #F8E8C833 70%, transparent 100%)",
+          background: "radial-gradient(circle, #8B7355 0%, #8B735599 40%, #8B735533 70%, transparent 100%)",
           animation: "light-grow 2s cubic-bezier(0.4, 0, 0.2, 1) forwards",
           pointerEvents: "none",
         }}
