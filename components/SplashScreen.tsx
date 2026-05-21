@@ -12,8 +12,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
   const [phase, setPhase] = useState<"show" | "fadeout">("show");
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setPhase("fadeout"), 2000);
-    const doneTimer = setTimeout(() => onDone(), 2700);
+    const fadeTimer = setTimeout(() => setPhase("fadeout"), 1500);
+    const doneTimer = setTimeout(() => onDone(), 2200);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
@@ -29,7 +29,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
       style={{
-        backgroundColor: "#000000",
+        backgroundColor: colors.bg,
         opacity: phase === "fadeout" ? 0 : 1,
         transition: "opacity 0.7s ease-out",
       }}
@@ -39,25 +39,9 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes light-grow {
-          0% { transform: scale(0); opacity: 0; }
-          100% { transform: scale(14); opacity: 1; }
-        }
       `}</style>
 
-      <div
-        style={{
-          position: "absolute",
-          width: "200px",
-          height: "200px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, #B8A898 0%, #B8A89899 40%, #B8A89833 70%, transparent 100%)",
-          animation: "light-grow 2s cubic-bezier(0.4, 0, 0.2, 1) forwards",
-          pointerEvents: "none",
-        }}
-      />
-
-      <div style={{ animation: "spin-in-place 8s linear infinite", position: "relative", zIndex: 1 }}>
+      <div style={{ animation: "spin-in-place 15s linear infinite" }}>
         <svg width="160" height="160" viewBox="0 0 100 100">
           <circle
             cx={center} cy={center} r={outerRadius}
