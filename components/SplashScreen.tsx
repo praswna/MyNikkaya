@@ -49,6 +49,19 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             opacity: 1;
           }
         }
+        @keyframes wheel-color {
+          0% {
+            stroke: ${colors.buttonIcon};
+            fill: ${colors.buttonIcon};
+          }
+          100% {
+            stroke: #FFD700;
+            fill: #FFD700;
+          }
+        }
+        .wheel-anim circle, .wheel-anim line {
+          animation: wheel-color 2s ease-in forwards;
+        }
       `}</style>
 
       <div
@@ -64,10 +77,10 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       />
 
       <div style={{ animation: "spin-in-place 8s linear infinite", position: "relative", zIndex: 1 }}>
-        <svg width="160" height="160" viewBox="0 0 100 100">
+        <svg width="160" height="160" viewBox="0 0 100 100" className="wheel-anim">
           <circle
             cx={center} cy={center} r={outerRadius}
-            stroke={colors.buttonIcon} strokeWidth="4" fill="none"
+            strokeWidth="4" fill="none"
           />
           {spokeAngles.map((angle, i) => {
             const x1 = center + innerRadius * Math.cos(angle);
@@ -77,11 +90,11 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             return (
               <line key={i}
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
+                strokeWidth="4" strokeLinecap="round"
               />
             );
           })}
-          <circle cx={center} cy={center} r={innerRadius} fill={colors.buttonIcon} />
+          <circle cx={center} cy={center} r={innerRadius} />
         </svg>
       </div>
     </div>
