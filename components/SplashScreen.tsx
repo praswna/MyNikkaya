@@ -10,15 +10,19 @@ interface SplashScreenProps {
 
 export function SplashScreen({ colors, onDone }: SplashScreenProps) {
   const [phase, setPhase] = useState<"show" | "fadeout">("show");
+  const [wheelColor, setWheelColor] = useState(colors.buttonIcon);
 
   useEffect(() => {
+    // 법륜 색상을 노란색으로 천천히 변경
+    const colorTimer = setTimeout(() => setWheelColor("#FFD700"), 100);
     const fadeTimer = setTimeout(() => setPhase("fadeout"), 2000);
     const doneTimer = setTimeout(() => onDone(), 2700);
     return () => {
+      clearTimeout(colorTimer);
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
     };
-  }, [onDone]);
+  }, [onDone, colors.buttonIcon]);
 
   const center = 50;
   const outerRadius = 38;
@@ -40,27 +44,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           to { transform: rotate(360deg); }
         }
         @keyframes light-grow {
-          0% {
-            transform: scale(0);
-            opacity: 0;
-          }
-          100% {
-            transform: scale(14);
-            opacity: 1;
-          }
-        }
-        @keyframes wheel-color {
-          0% {
-            stroke: ${colors.buttonIcon};
-            fill: ${colors.buttonIcon};
-          }
-          100% {
-            stroke: #FFD700;
-            fill: #FFD700;
-          }
-        }
-        .wheel-anim circle, .wheel-anim line {
-          animation: wheel-color 2s ease-in forwards;
+          0% { transform: scale(0); opacity: 0; }
+          100% { transform: scale(14); opacity: 1; }
         }
       `}</style>
 
@@ -77,10 +62,13 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       />
 
       <div style={{ animation: "spin-in-place 8s linear infinite", position: "relative", zIndex: 1 }}>
-        <svg width="160" height="160" viewBox="0 0 100 100" className="wheel-anim">
+        <svg width="160" height="160" viewBox="0 0 100 100" style={{ transition: "all 1.8s ease-in" }}>
           <circle
             cx={center} cy={center} r={outerRadius}
-            strokeWidth="4" fill="none"
+            stroke={wheelColor}
+            strokeWidth="4"
+            fill="none"
+            style={{ transition: "stroke 1.8s ease-in" }}
           />
           {spokeAngles.map((angle, i) => {
             const x1 = center + innerRadius * Math.cos(angle);
@@ -90,11 +78,18 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             return (
               <line key={i}
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                strokeWidth="4" strokeLinecap="round"
+                stroke={wheelColor}
+                strokeWidth="4"
+                strokeLinecap="round"
+                style={{ transition: "stroke 1.8s ease-in" }}
               />
             );
           })}
-          <circle cx={center} cy={center} r={innerRadius} />
+          <circle
+            cx={center} cy={center} r={innerRadius}
+            fill={wheelColor}
+            style={{ transition: "fill 1.8s ease-in" }}
+          />
         </svg>
       </div>
     </div>
