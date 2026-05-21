@@ -39,16 +39,21 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes light-expand {
-          0% { transform: scale(0); opacity: 0; }
-          30% { opacity: 1; }
-          100% { transform: scale(14); opacity: 1; }
-        }
-        @keyframes light-brighten {
-          0% { background: radial-gradient(circle, #D4B89600 0%, transparent 60%); }
-          40% { background: radial-gradient(circle, #D4B89666 0%, #D4B89633 40%, transparent 70%); }
-          80% { background: radial-gradient(circle, #D4B896DD 0%, #D4B89677 40%, #D4B89633 70%, transparent 90%); }
-          100% { background: radial-gradient(circle, #FFFBF7FF 0%, #D4B896DD 40%, #D4B89677 70%, #D4B89633 90%, transparent 100%); }
+        @keyframes light-grow {
+          0% {
+            transform: scale(0);
+            background: radial-gradient(circle, #5C4A2200 0%, transparent 70%);
+          }
+          30% {
+            background: radial-gradient(circle, #8B7355AA 0%, #8B735544 50%, transparent 80%);
+          }
+          60% {
+            background: radial-gradient(circle, #C4A882DD 0%, #C4A88277 50%, #C4A88222 80%, transparent 95%);
+          }
+          100% {
+            transform: scale(14);
+            background: radial-gradient(circle, #FFFBF7FF 0%, #F0D8A8DD 30%, #D4B89677 60%, #C4A88233 85%, transparent 100%);
+          }
         }
       `}</style>
 
@@ -58,7 +63,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           width: "200px",
           height: "200px",
           borderRadius: "50%",
-          animation: "light-expand 5s cubic-bezier(0.4, 0, 0.2, 1) forwards, light-brighten 5s ease-in-out forwards",
+          animation: "light-grow 5s cubic-bezier(0.4, 0, 0.2, 1) forwards",
           pointerEvents: "none",
         }}
       />
