@@ -10,19 +10,15 @@ interface SplashScreenProps {
 
 export function SplashScreen({ colors, onDone }: SplashScreenProps) {
   const [phase, setPhase] = useState<"show" | "fadeout">("show");
-  const [wheelColor, setWheelColor] = useState(colors.buttonIcon);
 
   useEffect(() => {
-    // 법륜 색상을 노란색으로 천천히 변경
-    const colorTimer = setTimeout(() => setWheelColor("#FFD700"), 100);
     const fadeTimer = setTimeout(() => setPhase("fadeout"), 2000);
     const doneTimer = setTimeout(() => onDone(), 2700);
     return () => {
-      clearTimeout(colorTimer);
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
     };
-  }, [onDone, colors.buttonIcon]);
+  }, [onDone]);
 
   const center = 50;
   const outerRadius = 38;
@@ -62,13 +58,10 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       />
 
       <div style={{ animation: "spin-in-place 8s linear infinite", position: "relative", zIndex: 1 }}>
-        <svg width="160" height="160" viewBox="0 0 100 100" style={{ transition: "all 1.8s ease-in" }}>
+        <svg width="160" height="160" viewBox="0 0 100 100">
           <circle
             cx={center} cy={center} r={outerRadius}
-            stroke={wheelColor}
-            strokeWidth="4"
-            fill="none"
-            style={{ transition: "stroke 1.8s ease-in" }}
+            stroke={colors.buttonIcon} strokeWidth="4" fill="none"
           />
           {spokeAngles.map((angle, i) => {
             const x1 = center + innerRadius * Math.cos(angle);
@@ -78,18 +71,11 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
             return (
               <line key={i}
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={wheelColor}
-                strokeWidth="4"
-                strokeLinecap="round"
-                style={{ transition: "stroke 1.8s ease-in" }}
+                stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
               />
             );
           })}
-          <circle
-            cx={center} cy={center} r={innerRadius}
-            fill={wheelColor}
-            style={{ transition: "fill 1.8s ease-in" }}
-          />
+          <circle cx={center} cy={center} r={innerRadius} fill={colors.buttonIcon} />
         </svg>
       </div>
     </div>
