@@ -23,7 +23,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
 
   return (
     <p
-      className="text-center font-semibold select-none w-full"
+      className="text-center font-semibold w-full"
       style={{
         fontSize,
         lineHeight,
