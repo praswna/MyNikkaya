@@ -51,43 +51,24 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
           );
         }
         if (seg.type === "ruby" && seg.ruby) {
-          const hasBelow = seg.rubyBelow && seg.rubyBelow.length > 0;
-          const topFontSize = getRubyFontSize(seg.ruby);
           return (
-            <span key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", verticalAlign: "bottom", lineHeight: "1.1" }}>
-              {/* 윗 루비 */}
-              <span style={{
-                fontSize: topFontSize,
+            <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
+              {seg.content}
+              <rt style={{
+                fontSize: getRubyFontSize(seg.ruby),
                 color: colors.rubyText,
                 fontWeight: "normal",
                 letterSpacing: "0.02em",
                 lineHeight: "1",
-                marginBottom: "0em",
               }}>
                 {seg.ruby.map((r, j) => (
-                  <span key={j} style={{ display: "block" }}>{r}</span>
+                  <span key={j}>
+                    {r}
+                    {j < seg.ruby!.length - 1 && <br />}
+                  </span>
                 ))}
-              </span>
-              {/* 베이스 */}
-              <span style={{ color: colors.textEmphasis }}>
-                {seg.content}
-              </span>
-              {/* 아랫 루비 */}
-              {hasBelow && (
-                <span style={{
-                  fontSize: getRubyFontSize(seg.rubyBelow!),
-                  color: colors.textEmphasis,
-                  fontWeight: "normal",
-                  letterSpacing: "0.02em",
-                  lineHeight: "1",
-                  marginTop: "0em",
-                }}>
-                  {seg.rubyBelow!.map((r, j) => (
-                    <span key={j} style={{ display: "block" }}>{r}</span>
-                  ))}
-                </span>
-              )}
-            </span>
+              </rt>
+            </ruby>
           );
         }
         return <span key={i}>{seg.content}</span>;
