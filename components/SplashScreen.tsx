@@ -42,17 +42,11 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
         @keyframes light-grow {
           0% {
             transform: scale(0);
-            background: radial-gradient(circle, #5C4A2200 0%, transparent 70%);
-          }
-          30% {
-            background: radial-gradient(circle, #8B7355AA 0%, #8B735544 50%, transparent 80%);
-          }
-          60% {
-            background: radial-gradient(circle, #C4A882DD 0%, #C4A88277 50%, #C4A88222 80%, transparent 95%);
+            opacity: 0;
           }
           100% {
             transform: scale(14);
-            background: radial-gradient(circle, #FFFBF7FF 0%, #F0D8A8DD 30%, #D4B89677 60%, #C4A88233 85%, transparent 100%);
+            opacity: 1;
           }
         }
       `}</style>
@@ -63,6 +57,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           width: "200px",
           height: "200px",
           borderRadius: "50%",
+          background: "radial-gradient(circle, #F0D8A8 0%, #F0D8A899 40%, #F0D8A833 70%, transparent 100%)",
           animation: "light-grow 5s cubic-bezier(0.4, 0, 0.2, 1) forwards",
           pointerEvents: "none",
         }}
