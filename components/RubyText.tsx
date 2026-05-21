@@ -81,7 +81,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
                   fontWeight: "normal",
                   letterSpacing: "0.02em",
                   lineHeight: "1",
-                  marginTop: "0em",
+                  marginTop: "-0.2em",
                 }}>
                   {seg.rubyBelow!.map((r, j) => (
                     <span key={j} style={{ display: "block" }}>{r}</span>
