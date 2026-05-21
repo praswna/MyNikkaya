@@ -12,8 +12,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
   const [phase, setPhase] = useState<"show" | "fadeout">("show");
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setPhase("fadeout"), 5000);
-    const doneTimer = setTimeout(() => onDone(), 6500);
+    const fadeTimer = setTimeout(() => setPhase("fadeout"), 3000);
+    const doneTimer = setTimeout(() => onDone(), 4000);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
@@ -31,7 +31,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       style={{
         backgroundColor: "#000000",
         opacity: phase === "fadeout" ? 0 : 1,
-        transition: "opacity 1.5s ease-out",
+        transition: "opacity 1s ease-out",
       }}
     >
       <style>{`
@@ -57,8 +57,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
           width: "200px",
           height: "200px",
           borderRadius: "50%",
-          background: "radial-gradient(circle, #F0D8A8 0%, #F0D8A899 40%, #F0D8A833 70%, transparent 100%)",
-          animation: "light-grow 5s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+          background: "radial-gradient(circle, #F8E8C8 0%, #F8E8C899 40%, #F8E8C833 70%, transparent 100%)",
+          animation: "light-grow 3s cubic-bezier(0.4, 0, 0.2, 1) forwards",
           pointerEvents: "none",
         }}
       />
