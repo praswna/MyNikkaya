@@ -51,24 +51,43 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
           );
         }
         if (seg.type === "ruby" && seg.ruby) {
+          const hasBelow = seg.rubyBelow && seg.rubyBelow.length > 0;
           return (
-            <ruby key={i} style={{ color: colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
-              {seg.content}
-              <rt style={{
-                fontSize: getRubyFontSize(seg.ruby),
-                color: colors.rubyText,
-                fontWeight: "normal",
-                letterSpacing: "0.02em",
-                lineHeight: "1",
-              }}>
-                {seg.ruby.map((r, j) => (
-                  <span key={j}>
-                    {r}
-                    {j < seg.ruby!.length - 1 && <br />}
-                  </span>
-                ))}
-              </rt>
-            </ruby>
+            <span key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", verticalAlign: "bottom" }}>
+              {/* 윗 루비 */}
+              <ruby style={{ color: colors.textEmphasis } as React.CSSProperties}>
+                {seg.content}
+                <rt style={{
+                  fontSize: getRubyFontSize(seg.ruby),
+                  color: colors.rubyText,
+                  fontWeight: "normal",
+                  letterSpacing: "0.02em",
+                  lineHeight: "1",
+                }}>
+                  {seg.ruby.map((r, j) => (
+                    <span key={j}>
+                      {r}
+                      {j < seg.ruby!.length - 1 && <br />}
+                    </span>
+                  ))}
+                </rt>
+              </ruby>
+              {/* 아랫 루비 */}
+              {hasBelow && (
+                <span style={{
+                  fontSize: getRubyFontSize(seg.rubyBelow!),
+                  color: colors.textEmphasis,
+                  fontWeight: "normal",
+                  letterSpacing: "0.02em",
+                  lineHeight: "1",
+                  marginTop: "0.15em",
+                }}>
+                  {seg.rubyBelow!.map((r, j) => (
+                    <span key={j} style={{ display: "block" }}>{r}</span>
+                  ))}
+                </span>
+              )}
+            </span>
           );
         }
         return <span key={i}>{seg.content}</span>;
