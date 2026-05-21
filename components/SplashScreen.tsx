@@ -12,8 +12,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
   const [phase, setPhase] = useState<"show" | "fadeout">("show");
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setPhase("fadeout"), 3500);
-    const doneTimer = setTimeout(() => onDone(), 4100);
+    const fadeTimer = setTimeout(() => setPhase("fadeout"), 5000);
+    const doneTimer = setTimeout(() => onDone(), 6500);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
@@ -31,7 +31,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       style={{
         backgroundColor: "#000000",
         opacity: phase === "fadeout" ? 0 : 1,
-        transition: "opacity 0.6s ease-out",
+        transition: "opacity 1.5s ease-out",
       }}
     >
       <style>{`
@@ -41,31 +41,29 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
         }
         @keyframes light-expand {
           0% { transform: scale(0); opacity: 0; }
-          20% { opacity: 1; }
-          100% { transform: scale(12); opacity: 1; }
+          30% { opacity: 1; }
+          100% { transform: scale(14); opacity: 1; }
         }
         @keyframes light-brighten {
           0% { background: radial-gradient(circle, #D4B89600 0%, transparent 60%); }
-          30% { background: radial-gradient(circle, #D4B89644 0%, #D4B89622 40%, transparent 70%); }
-          70% { background: radial-gradient(circle, #D4B896CC 0%, #D4B89666 40%, #D4B89622 70%, transparent 85%); }
-          100% { background: radial-gradient(circle, #FFFBF7FF 0%, #D4B896CC 40%, #D4B89666 70%, #D4B89622 90%, transparent 100%); }
+          40% { background: radial-gradient(circle, #D4B89666 0%, #D4B89633 40%, transparent 70%); }
+          80% { background: radial-gradient(circle, #D4B896DD 0%, #D4B89677 40%, #D4B89633 70%, transparent 90%); }
+          100% { background: radial-gradient(circle, #FFFBF7FF 0%, #D4B896DD 40%, #D4B89677 70%, #D4B89633 90%, transparent 100%); }
         }
       `}</style>
 
-      {/* 퍼지는 빛 */}
       <div
         style={{
           position: "absolute",
           width: "200px",
           height: "200px",
           borderRadius: "50%",
-          animation: "light-expand 3.5s ease-in forwards, light-brighten 3.5s ease-in forwards",
+          animation: "light-expand 5s cubic-bezier(0.4, 0, 0.2, 1) forwards, light-brighten 5s ease-in-out forwards",
           pointerEvents: "none",
         }}
       />
 
-      {/* 법륜 */}
-      <div style={{ animation: "spin-in-place 5s linear infinite", position: "relative", zIndex: 1 }}>
+      <div style={{ animation: "spin-in-place 8s linear infinite", position: "relative", zIndex: 1 }}>
         <svg width="160" height="160" viewBox="0 0 100 100">
           <circle
             cx={center} cy={center} r={outerRadius}
