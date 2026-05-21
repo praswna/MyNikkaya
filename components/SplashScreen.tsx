@@ -32,15 +32,6 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
         backgroundColor: "#000000",
         opacity: phase === "fadeout" ? 0 : 1,
         transition: "opacity 0.7s ease-out",
-        // 페이드아웃 시 중앙부터 사라지는 마스크
-        WebkitMaskImage: phase === "fadeout"
-          ? "radial-gradient(circle, transparent 0%, transparent 30%, black 70%)"
-          : "none",
-        maskImage: phase === "fadeout"
-          ? "radial-gradient(circle, transparent 0%, transparent 30%, black 70%)"
-          : "none",
-        transitionProperty: "opacity, mask-image, -webkit-mask-image",
-        transitionDuration: "0.7s",
       }}
     >
       <style>{`
