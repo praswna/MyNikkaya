@@ -6,7 +6,6 @@ function parseCSV(csvText: string): string[][] {
   let currentField = "";
   let insideQuotes = false;
 
-  // UTF-8 BOM 제거
   const text = csvText.replace(/^\uFEFF/, "");
 
   for (let i = 0; i < text.length; i++) {
@@ -21,11 +20,11 @@ function parseCSV(csvText: string): string[][] {
         insideQuotes = !insideQuotes;
       }
     } else if (char === "," && !insideQuotes) {
-      currentRow.push(currentField.trim());
+      currentRow.push(currentField);
       currentField = "";
     } else if ((char === "\n" || char === "\r") && !insideQuotes) {
       if (currentField || currentRow.length > 0) {
-        currentRow.push(currentField.trim());
+        currentRow.push(currentField);
         if (currentRow.some((field) => field.length > 0)) {
           rows.push(currentRow);
         }
@@ -35,13 +34,17 @@ function parseCSV(csvText: string): string[][] {
       if (char === "\r" && nextChar === "\n") {
         i++;
       }
+    } else if (char === "\r" && insideQuotes && nextChar === "\n") {
+      // 셀 안의 \r\n을 \n으로 정규화
+      currentField += "\n";
+      i++;
     } else {
       currentField += char;
     }
   }
 
   if (currentField || currentRow.length > 0) {
-    currentRow.push(currentField.trim());
+    currentRow.push(currentField);
     if (currentRow.some((field) => field.length > 0)) {
       rows.push(currentRow);
     }
@@ -71,14 +74,14 @@ export function parseGoogleSheetsCSV(csvText: string): Quote[] {
     const row = rows[i];
     if (!row || row.length < 2) continue;
 
-    const category = row[0];
-    const text = row[1];
+    const category = row[0].trim();
+    const text = row[1]; // 본문은 trim 안 함 (줄바꿈 보존)
 
-    if (text && text.trim() && category && category.trim()) {
+    if (text && text.trim() && category) {
       quotes.push({
         id: `gs-${id++}`,
-        text: text.trim(),
-        category: category.trim(),
+        text: text,
+        category: category,
       });
     }
   }
