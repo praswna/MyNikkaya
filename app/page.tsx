@@ -105,7 +105,7 @@ export default function Home() {
       const nextCategory = categoryStillExists ? selectedCategory : null;
       if (!categoryStillExists) setSelectedCategory(null);
       applyQuotes(result.quotes, nextCategory);
-      setSyncStatus(`${result.quotes.length}개 명언을 최신으로 업데이트했습니다.`);
+      setSyncStatus(`${result.quotes.length}개를 최신으로 업데이트했습니다.`);
     } catch (e) {
       console.error(e);
       setSyncStatus("동기화에 실패했습니다.");
