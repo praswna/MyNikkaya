@@ -48,7 +48,7 @@ function parseInner(text: string): RubySegment[] {
 export function parseRubyText(text: string): RubySegment[] {
   // 먼저 **bold** 를 분리
   const segments: RubySegment[] = [];
-  const boldPattern = /\*\*([^*]+)\*\*/g;
+  const boldPattern = /\{\{([^}]+)\}\}/g;
   let lastIndex = 0;
   let match;
 
