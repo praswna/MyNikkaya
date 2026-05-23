@@ -53,13 +53,10 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
           fontWeight: "normal",
           letterSpacing: "0.02em",
           lineHeight: "1",
+          whiteSpace: "pre-line",
         }}>
-          {seg.ruby.map((r, j) => (
-            <span key={j}>
-              {r}
-              {j < seg.ruby!.length - 1 && <br />}
-            </span>
-          ))}
+          {seg.ruby.join("
+")}
         </rt>
       </ruby>
     );
