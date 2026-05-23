@@ -1,8 +1,8 @@
 import { RubySegment } from "./types";
 
-export function parseRubyText(text: string): RubySegment[] {
+function parseInner(text: string): RubySegment[] {
   const segments: RubySegment[] = [];
-  const pattern = /\{([^}]+)\}|\n|(https?:\/\/[^\s]+)|\*\*([^*]+)\*\*/g;
+  const pattern = /\{([^}]+)\}|\n|(https?:\/\/[^\s]+)/g;
   let lastIndex = 0;
   let match;
 
@@ -25,14 +25,6 @@ export function parseRubyText(text: string): RubySegment[] {
       continue;
     }
 
-    if (match[0].startsWith("**")) {
-      const before = text.slice(lastIndex, matchStart);
-      if (before.length > 0) segments.push({ type: "text", content: before });
-      segments.push({ type: "bold", content: match[3] });
-      lastIndex = matchStart + match[0].length;
-      continue;
-    }
-
     const before = text.slice(lastIndex, matchStart);
     const wordMatch = before.match(/(\S+)$/);
     const word = wordMatch ? wordMatch[1] : "";
@@ -48,6 +40,41 @@ export function parseRubyText(text: string): RubySegment[] {
 
   if (lastIndex < text.length) {
     segments.push({ type: "text", content: text.slice(lastIndex) });
+  }
+
+  return segments;
+}
+
+export function parseRubyText(text: string): RubySegment[] {
+  // 먼저 **bold** 를 분리
+  const segments: RubySegment[] = [];
+  const boldPattern = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldPattern.exec(text)) !== null) {
+    const matchStart = match.index;
+
+    // bold 이전 텍스트는 일반 파싱
+    if (matchStart > lastIndex) {
+      const before = text.slice(lastIndex, matchStart);
+      segments.push(...parseInner(before));
+    }
+
+    // bold 내부도 루비/링크/줄바꿈 파싱
+    const innerSegments = parseInner(match[1]);
+    segments.push({
+      type: "bold",
+      content: match[1],
+      innerSegments,
+    });
+
+    lastIndex = matchStart + match[0].length;
+  }
+
+  // 나머지 텍스트
+  if (lastIndex < text.length) {
+    segments.push(...parseInner(text.slice(lastIndex)));
   }
 
   return segments;
