@@ -55,8 +55,7 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
           lineHeight: "1",
           whiteSpace: "pre-line",
         }}>
-          {seg.ruby.join("
-")}
+          {seg.ruby.join("\n")}
         </rt>
       </ruby>
     );
