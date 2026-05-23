@@ -2,7 +2,7 @@ import { RubySegment } from "./types";
 
 export function parseRubyText(text: string): RubySegment[] {
   const segments: RubySegment[] = [];
-  const pattern = /\{([^}]+)\}|\n|(https?:\/\/[^\s]+)/g;
+  const pattern = /\{([^}]+)\}|\n|(https?:\/\/[^\s]+)|\*\*([^*]+)\*\*/g;
   let lastIndex = 0;
   let match;
 
@@ -25,13 +25,20 @@ export function parseRubyText(text: string): RubySegment[] {
       continue;
     }
 
+    if (match[0].startsWith("**")) {
+      const before = text.slice(lastIndex, matchStart);
+      if (before.length > 0) segments.push({ type: "text", content: before });
+      segments.push({ type: "bold", content: match[3] });
+      lastIndex = matchStart + match[0].length;
+      continue;
+    }
+
     const before = text.slice(lastIndex, matchStart);
     const wordMatch = before.match(/(\S+)$/);
     const word = wordMatch ? wordMatch[1] : "";
     const pureText = word ? before.slice(0, before.length - word.length) : before;
     if (pureText.length > 0) segments.push({ type: "text", content: pureText });
 
-    // ^ 뒤는 무시 (아랫 루비 제거)
     const topPart = match[1].split("^")[0];
     const rubyParts = topPart.split(",").map((s) => s.trim()).filter(Boolean);
     segments.push({ type: "ruby", content: word, ruby: rubyParts });

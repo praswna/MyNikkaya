@@ -37,6 +37,13 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         if (seg.type === "newline") {
           return <br key={i} />;
         }
+        if (seg.type === "bold") {
+          return (
+            <strong key={i} style={{ color: colors.textBold, fontWeight: 900 }}>
+              {seg.content}
+            </strong>
+          );
+        }
         if (seg.type === "link") {
           return (
             <a

@@ -8,6 +8,7 @@ export const THEMES = {
     text: "#F5F0E8",
     textMuted: "#B8A898",
     textEmphasis: "#D4B896",
+    textBold: "#E5C88A",
     categorySelected: "#7A6E62",
     categorySelectedText: "#F0D080",
     categoryBorder: "#4A4438",
@@ -23,7 +24,8 @@ export const THEMES = {
     border: "#C8BEB0",
     text: "#2C2416",
     textMuted: "#7A6248",
-    textEmphasis: "#6B4E32",
+    textEmphasis: "#7B5B3A",
+    textBold: "#8B6914",
     categorySelected: "#9B8B7E",
     categorySelectedText: "#FFD700",
     categoryBorder: "#C4A882",
@@ -42,6 +44,7 @@ export type ThemeColors = {
   text: string;
   textMuted: string;
   textEmphasis: string;
+  textBold: string;
   categorySelected: string;
   categorySelectedText: string;
   categoryBorder: string;
