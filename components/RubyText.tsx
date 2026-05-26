@@ -25,7 +25,7 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
   }
   if (seg.type === "bold" && seg.innerSegments) {
     return (
-      <strong key={i} style={{ color: colors.textBold, fontWeight: 900 }}>
+      <strong key={i} style={{ color: colors.textBold, fontWeight: 900, wordBreak: "break-word", overflowWrap: "break-word", display: "inline-block", maxWidth: "100%" }}>
         {seg.innerSegments.map((inner, j) => renderSegment(inner, j, colors, true))}
       </strong>
     );
@@ -76,8 +76,8 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         wordBreak: "keep-all",
         overflowWrap: "break-word",
         maxWidth: "100%",
-        overflowX: "hidden",
-      }}
+        wordBreak: "break-word",
+              }}
     >
       {segments.map((seg, i) => renderSegment(seg, i, colors, false))}
     </p>
