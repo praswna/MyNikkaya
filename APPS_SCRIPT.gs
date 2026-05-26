@@ -1,7 +1,7 @@
 // Google Apps Script 코드
 // 구글 시트 → 확장 프로그램 → Apps Script → 아래 코드 붙여넣기 → 저장 → 배포
 
-const SHEET_NAME = "Sheet1"; // 실제 시트 탭 이름으로 변경
+const SHEET_NAME = "quotes_export"; // 실제 시트 탭 이름으로 변경
 const SECRET_KEY = "my-nikkaya-2024"; // 보안 키 (앱 환경변수랑 일치해야 함)
 
 function doPost(e) {
