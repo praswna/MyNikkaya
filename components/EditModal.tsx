@@ -12,7 +12,7 @@ interface EditModalProps {
   colors: ThemeColors;
 }
 
-const APPS_SCRIPT_URL = process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ?? "";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8dYkRH1kUKiTfYvZ1jl2vZPR81GD2uhnU0oOPcP9gJKnGD3l0NrBtEuUdeVOfsg-b/exec";
 const SECRET_KEY = process.env.NEXT_PUBLIC_APPS_SCRIPT_KEY ?? "my-nikkaya-2024";
 
 export function EditModal({ isOpen, onClose, quote, onSave, colors }: EditModalProps) {
