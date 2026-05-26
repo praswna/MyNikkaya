@@ -17,6 +17,7 @@ interface SettingsModalProps {
   onFontSizeOpen: () => void;
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
+  onEditOpen: () => void;
   colors: ThemeColors;
 }
 
@@ -35,6 +36,7 @@ export function SettingsModal({
   onFontSizeOpen,
   onMeditationStart,
   onQROpen,
+  onEditOpen,
   colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
@@ -125,6 +127,15 @@ export function SettingsModal({
             </button>
           ))}
         </div>
+
+        {/* 수정 버튼 */}
+        <button
+          onClick={() => { onEditOpen(); onClose(); }}
+          className="w-full rounded-xl py-2 text-sm font-medium transition-colors mb-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          ✏️ 명언 수정
+        </button>
 
         {/* QR 코드 버튼 */}
         <button

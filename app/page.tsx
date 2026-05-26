@@ -7,6 +7,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
+import { EditModal } from "@/components/EditModal";
 import { SplashScreen } from "@/components/SplashScreen";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
@@ -37,6 +38,7 @@ export default function Home() {
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -262,6 +264,14 @@ export default function Home() {
         onFontSizeOpen={() => setIsFontSizeOpen(true)}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
+        onEditOpen={() => setIsEditOpen(true)}
+        colors={colors}
+      />
+      <EditModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        quote={currentQuote}
+        onSave={(updated) => setCurrentQuote(updated)}
         colors={colors}
       />
       <FontSizeModal
