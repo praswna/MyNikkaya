@@ -264,49 +264,50 @@ export default function Home() {
         </div>
       )}
 
+      {/* 수정 모드 전체화면 */}
+      {isEditing && (
+        <div className="fixed inset-0 z-30 flex flex-col p-4" style={{ backgroundColor: colors.bg }}>
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            className="flex-1 rounded-xl p-4 resize-none outline-none"
+            style={{
+              backgroundColor: colors.bgSecondary,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              fontFamily: "inherit",
+              lineHeight: "1.6",
+              fontSize: scaledFontSize,
+            }}
+            autoFocus
+          />
+          {editStatus && (
+            <p className="mt-2 text-xs text-center" style={{ color: colors.textMuted }}>{editStatus}</p>
+          )}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => { setIsEditing(false); setEditStatus(null); }}
+              className="flex-1 rounded-xl py-3 text-sm font-medium"
+              style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+            >취소</button>
+            <button
+              onClick={handleEditSave}
+              className="flex-1 rounded-xl py-3 text-sm font-medium"
+              style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+            >저장</button>
+          </div>
+        </div>
+      )}
+
       {/* 명언 영역 */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
         <div className="flex min-h-full items-center justify-center">
-          {isEditing ? (
-            <div className="w-full flex flex-col items-center gap-3">
-              <textarea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                className="w-full rounded-xl p-3 text-sm resize-none outline-none"
-                style={{
-                  backgroundColor: colors.bgSecondary,
-                  color: colors.text,
-                  border: `1px solid ${colors.border}`,
-                  fontFamily: "inherit",
-                  lineHeight: "1.6",
-                  minHeight: "200px",
-                  fontSize: scaledFontSize,
-                }}
-              />
-              {editStatus && (
-                <p className="text-xs" style={{ color: colors.textMuted }}>{editStatus}</p>
-              )}
-              <div className="flex gap-2 w-full">
-                <button
-                  onClick={() => { setIsEditing(false); setEditStatus(null); }}
-                  className="flex-1 rounded-xl py-2 text-sm font-medium"
-                  style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
-                >취소</button>
-                <button
-                  onClick={handleEditSave}
-                  className="flex-1 rounded-xl py-2 text-sm font-medium"
-                  style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-                >저장</button>
-              </div>
-            </div>
-          ) : (
-            <RubyText
-              text={currentQuote.text}
-              fontSize={scaledFontSize}
-              lineHeight={metrics.lineHeight}
-              colors={colors}
-            />
-          )}
+          <RubyText
+            text={currentQuote.text}
+            fontSize={scaledFontSize}
+            lineHeight={metrics.lineHeight}
+            colors={colors}
+          />
         </div>
       </div>
 
