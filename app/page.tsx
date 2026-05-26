@@ -4,11 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { DharmaWheel } from "@/components/DharmaWheel";
 import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
-import { FontSizeModal } from "@/components/FontSizeModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
-import { EditModal } from "@/components/EditModal";
-import { SplashScreen } from "@/components/SplashScreen";
+import { FontSizeModal } from "@/components/FontSizeModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -16,12 +14,12 @@ import type { Quote } from "@/lib/types";
 
 const STORAGE_KEY_THEME = "app_theme";
 const STORAGE_KEY_FONT_SCALE = "app_font_scale";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8dYkRH1kUKiTfYvZ1jl2vZPR81GD2uhnU0oOPcP9gJKnGD3l0NrBtEuUdeVOfsg-b/exec";
+const SECRET_KEY = "my-nikkaya-2024";
 
 function pickRandom(quotes: Quote[], category: string | null, excludeId?: string): Quote | null {
   let pool = category ? quotes.filter((q) => q.category === category) : quotes;
-  if (pool.length > 1 && excludeId) {
-    pool = pool.filter((q) => q.id !== excludeId);
-  }
+  if (pool.length > 1 && excludeId) pool = pool.filter((q) => q.id !== excludeId);
   if (pool.length === 0) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -38,11 +36,13 @@ export default function Home() {
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [wheelRotate, setWheelRotate] = useState(0);
-  const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
+  const [wheelRotate, setWheelRotate] = useState(0);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
+  const [editStatus, setEditStatus] = useState<string | null>(null);
   const quotesRef = useRef<Quote[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +94,8 @@ export default function Home() {
   const handleNewQuote = useCallback(() => {
     setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
     setSyncStatus(null);
+    setIsEditing(false);
+    setEditStatus(null);
     scrollRef.current?.scrollTo({ top: 0 });
     setWheelRotate((prev) => prev + 45);
   }, [selectedCategory]);
@@ -123,6 +125,8 @@ export default function Home() {
     const next = cat === selectedCategory ? null : cat;
     setSelectedCategory(next);
     setCurrentQuote(pickRandom(quotesRef.current, next));
+    setIsEditing(false);
+    setEditStatus(null);
   }, [selectedCategory]);
 
   const handleThemeToggle = useCallback(() => {
@@ -138,10 +142,54 @@ export default function Home() {
     try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
   }, []);
 
+  // 수정 모드 시작
+  const handleEditOpen = useCallback(() => {
+    if (!currentQuote) return;
+    setEditText(currentQuote.text);
+    setEditStatus(null);
+    setIsEditing(true);
+  }, [currentQuote]);
+
+  // 수정 저장
+  const handleEditSave = useCallback(async () => {
+    if (!currentQuote || !editText.trim()) return;
+    setEditStatus("저장 중...");
+
+    const updated: Quote = { ...currentQuote, text: editText.trim() };
+
+    // localStorage 업데이트
+    try {
+      const cached = localStorage.getItem("quotes_cache");
+      if (cached) {
+        const quotes: Quote[] = JSON.parse(cached);
+        const idx = quotes.findIndex((q) => q.id === currentQuote.id);
+        if (idx !== -1) {
+          quotes[idx] = updated;
+          localStorage.setItem("quotes_cache", JSON.stringify(quotes));
+          quotesRef.current = quotes;
+        }
+      }
+    } catch {}
+
+    // Apps Script 업데이트 (no-cors)
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ id: currentQuote.id, text: editText.trim(), key: SECRET_KEY }),
+      });
+    } catch {}
+
+    setCurrentQuote(updated);
+    setEditStatus("저장 완료 ✓");
+    setTimeout(() => {
+      setIsEditing(false);
+      setEditStatus(null);
+    }, 1000);
+  }, [currentQuote, editText]);
+
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />
-    );
+    return <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />;
   }
 
   if (!currentQuote) {
@@ -156,11 +204,39 @@ export default function Home() {
   const scaledFontSize = Math.round(metrics.fontSize * fontScale);
 
   return (
-    <>
+    <div className="flex h-screen flex-col overflow-x-hidden" style={{ backgroundColor: colors.bg }}>
       {showSplash && (
-        <SplashScreen colors={colors} onDone={() => setShowSplash(false)} />
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+          style={{ backgroundColor: colors.bg }}
+        >
+          <style>{`@keyframes spin-in-place { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          <div style={{ animation: "spin-in-place 15s linear infinite" }}>
+            <svg width="160" height="160" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="38" stroke={colors.buttonIcon} strokeWidth="4" fill="none" />
+              {Array.from({ length: 8 }, (_, i) => (i * 45 * Math.PI) / 180).map((angle, i) => (
+                <line key={i}
+                  x1={50 + 10 * Math.cos(angle)} y1={50 + 10 * Math.sin(angle)}
+                  x2={50 + 38 * Math.cos(angle)} y2={50 + 38 * Math.sin(angle)}
+                  stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
+                />
+              ))}
+              <circle cx="50" cy="50" r="10" fill={colors.buttonIcon} />
+            </svg>
+          </div>
+          <style>{`
+            @keyframes splash-out {
+              0% { opacity: 1; }
+              100% { opacity: 0; }
+            }
+          `}</style>
+          <div
+            style={{ animation: "splash-out 0.7s ease-out 1.5s forwards", position: "absolute", inset: 0, backgroundColor: colors.bg, opacity: 0 }}
+            onAnimationEnd={() => setShowSplash(false)}
+          />
+        </div>
       )}
-      <div className="flex h-screen flex-col overflow-x-hidden" style={{ backgroundColor: colors.bg }}>
+
       {/* 카테고리 */}
       {categories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain">
@@ -172,9 +248,7 @@ export default function Home() {
               borderColor: selectedCategory === null ? colors.categorySelected : colors.categoryBorder,
               color: selectedCategory === null ? colors.categorySelectedText : colors.categoryText,
             }}
-          >
-            전체
-          </button>
+          >전체</button>
           {categories.map((cat) => (
             <button
               key={cat}
@@ -185,32 +259,63 @@ export default function Home() {
                 borderColor: selectedCategory === cat ? colors.categorySelected : colors.categoryBorder,
                 color: selectedCategory === cat ? colors.categorySelectedText : colors.categoryText,
               }}
-            >
-              {cat}
-            </button>
+            >{cat}</button>
           ))}
         </div>
       )}
 
-      {/* 명언 텍스트 — 세로 스크롤 */}
+      {/* 명언 영역 */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
         <div className="flex min-h-full items-center justify-center">
-          <RubyText
-            text={currentQuote.text}
-            fontSize={scaledFontSize}
-            lineHeight={metrics.lineHeight}
-            colors={colors}
-          />
+          {isEditing ? (
+            <div className="w-full flex flex-col items-center gap-3">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="w-full rounded-xl p-3 text-sm resize-none outline-none"
+                style={{
+                  backgroundColor: colors.bgSecondary,
+                  color: colors.text,
+                  border: `1px solid ${colors.border}`,
+                  fontFamily: "inherit",
+                  lineHeight: "1.6",
+                  minHeight: "200px",
+                  fontSize: scaledFontSize,
+                }}
+              />
+              {editStatus && (
+                <p className="text-xs" style={{ color: colors.textMuted }}>{editStatus}</p>
+              )}
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={() => { setIsEditing(false); setEditStatus(null); }}
+                  className="flex-1 rounded-xl py-2 text-sm font-medium"
+                  style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+                >취소</button>
+                <button
+                  onClick={handleEditSave}
+                  className="flex-1 rounded-xl py-2 text-sm font-medium"
+                  style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+                >저장</button>
+              </div>
+            </div>
+          ) : (
+            <RubyText
+              text={currentQuote.text}
+              fontSize={scaledFontSize}
+              lineHeight={metrics.lineHeight}
+              colors={colors}
+            />
+          )}
         </div>
       </div>
 
-      {/* 하단 버튼 — 고정 */}
+      {/* 하단 버튼 */}
       <div className="px-4 pb-6 pt-4" style={{ borderTop: `1px solid ${colors.border}`, backgroundColor: colors.bg }}>
         {syncStatus && (
           <p className="mb-3 text-center text-xs" style={{ color: colors.textMuted }}>{syncStatus}</p>
         )}
         <div className="flex items-center justify-center gap-6">
-          {/* 세팅 버튼 */}
           <button
             onClick={() => setIsSettingsOpen(true)}
             aria-label="설정"
@@ -223,7 +328,6 @@ export default function Home() {
             </svg>
           </button>
 
-          {/* 법륜 버튼 - 새 명언 (세 버튼 동일 색상) */}
           <button
             onClick={handleNewQuote}
             aria-label="새 명언 보기"
@@ -233,7 +337,6 @@ export default function Home() {
             <DharmaWheel size={34} color={colors.buttonIcon} rotate={wheelRotate} />
           </button>
 
-          {/* 동기화 버튼 */}
           <button
             onClick={handleSync}
             disabled={isSyncing}
@@ -254,24 +357,16 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 세팅 모달 */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         theme={theme}
         onThemeToggle={handleThemeToggle}
         fontScale={fontScale}
-        onFontSizeOpen={() => setIsFontSizeOpen(true)}
+        onFontSizeOpen={() => { setIsFontSizeOpen(true); setIsSettingsOpen(false); }}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
-        onEditOpen={() => setIsEditOpen(true)}
-        colors={colors}
-      />
-      <EditModal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        quote={currentQuote}
-        onSave={(updated) => setCurrentQuote(updated)}
+        onEditOpen={handleEditOpen}
         colors={colors}
       />
       <FontSizeModal
@@ -293,6 +388,5 @@ export default function Home() {
         duration={meditationDuration}
       />
     </div>
-    </>
   );
 }
