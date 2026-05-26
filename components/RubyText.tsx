@@ -76,6 +76,7 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
         wordBreak: "keep-all",
         overflowWrap: "break-word",
         maxWidth: "100%",
+        overflowX: "hidden",
       }}
     >
       {segments.map((seg, i) => renderSegment(seg, i, colors, false))}
