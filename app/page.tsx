@@ -40,6 +40,7 @@ export default function Home() {
   const [fontScale, setFontScale] = useState(1.0);
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
+  const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState("");
   const [editStatus, setEditStatus] = useState<string | null>(null);
@@ -47,6 +48,13 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const colors = THEMES[theme];
+
+  // 스플래시 타이머
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setSplashFading(true), 1500);
+    const doneTimer = setTimeout(() => setShowSplash(false), 2200);
+    return () => { clearTimeout(fadeTimer); clearTimeout(doneTimer); };
+  }, []);
 
   // 상태바 색상 동적 변경
   useEffect(() => {
@@ -205,37 +213,30 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col overflow-x-hidden" style={{ backgroundColor: colors.bg }}>
-      {showSplash && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
-          style={{ backgroundColor: colors.bg }}
-        >
-          <style>{`@keyframes spin-in-place { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-          <div style={{ animation: "spin-in-place 15s linear infinite" }}>
-            <svg width="160" height="160" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="38" stroke={colors.buttonIcon} strokeWidth="4" fill="none" />
-              {Array.from({ length: 8 }, (_, i) => (i * 45 * Math.PI) / 180).map((angle, i) => (
-                <line key={i}
-                  x1={50 + 10 * Math.cos(angle)} y1={50 + 10 * Math.sin(angle)}
-                  x2={50 + 38 * Math.cos(angle)} y2={50 + 38 * Math.sin(angle)}
-                  stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
-                />
-              ))}
-              <circle cx="50" cy="50" r="10" fill={colors.buttonIcon} />
-            </svg>
-          </div>
-          <style>{`
-            @keyframes splash-out {
-              0% { opacity: 1; }
-              100% { opacity: 0; }
-            }
-          `}</style>
-          <div
-            style={{ animation: "splash-out 0.7s ease-out 1.5s forwards", position: "absolute", inset: 0, backgroundColor: colors.bg, opacity: 0 }}
-            onAnimationEnd={() => setShowSplash(false)}
-          />
+      {showSplash && <div
+        className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+        style={{
+          backgroundColor: colors.bg,
+          opacity: splashFading ? 0 : 1,
+          transition: "opacity 0.7s ease-out",
+          pointerEvents: splashFading ? "none" : "auto",
+        }}
+      >
+        <style>{`@keyframes spin-in-place { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <div style={{ animation: "spin-in-place 15s linear infinite" }}>
+          <svg width="160" height="160" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="38" stroke={colors.buttonIcon} strokeWidth="4" fill="none" />
+            {Array.from({ length: 8 }, (_, i) => (i * 45 * Math.PI) / 180).map((angle, i) => (
+              <line key={i}
+                x1={50 + 10 * Math.cos(angle)} y1={50 + 10 * Math.sin(angle)}
+                x2={50 + 38 * Math.cos(angle)} y2={50 + 38 * Math.sin(angle)}
+                stroke={colors.buttonIcon} strokeWidth="4" strokeLinecap="round"
+              />
+            ))}
+            <circle cx="50" cy="50" r="10" fill={colors.buttonIcon} />
+          </svg>
         </div>
-      )}
+      </div>}
 
       {/* 카테고리 */}
       {categories.length > 0 && (
