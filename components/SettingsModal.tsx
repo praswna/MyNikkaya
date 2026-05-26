@@ -117,7 +117,7 @@ export function SettingsModal({
             <input
               type="range"
               min="0.7"
-              max="1.5"
+              max="2.5"
               step="0.05"
               value={fontScale}
               onChange={(e) => onFontScaleChange(parseFloat(e.target.value))}
