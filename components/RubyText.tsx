@@ -11,6 +11,14 @@ interface RubyTextProps {
   colors: ThemeColors;
 }
 
+function getBaseFontSize(text: string): string {
+  const len = text.length;
+  if (len > 25) return "0.45em";
+  if (len > 18) return "0.6em";
+  if (len > 12) return "0.8em";
+  return "1em";
+}
+
 function getRubyFontSize(parts: string[]): string {
   const maxLen = Math.max(...parts.map((r) => r.length));
   if (maxLen > 12) return "0.38em";
@@ -45,7 +53,7 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
   }
   if (seg.type === "ruby" && seg.ruby) {
     return (
-      <ruby key={i} style={{ color: bold ? colors.textBold : colors.textEmphasis, verticalAlign: "bottom" } as React.CSSProperties}>
+      <ruby key={i} style={{ color: bold ? colors.textBold : colors.textEmphasis, verticalAlign: "bottom", fontSize: getBaseFontSize(seg.content) } as React.CSSProperties}>
         {seg.content}
         <rt style={{
           fontSize: getRubyFontSize(seg.ruby),
