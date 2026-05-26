@@ -1,15 +1,27 @@
-// Google Apps Script 코드
-// 구글 시트 → 확장 프로그램 → Apps Script → 아래 코드 붙여넣기 → 저장 → 배포
-
-const SHEET_NAME = "quotes_export"; // 실제 시트 탭 이름으로 변경
-const SECRET_KEY = "my-nikkaya-2024"; // 보안 키 (앱 환경변수랑 일치해야 함)
+const SHEET_NAME = "quotes_export";
+const SECRET_KEY = "my-nikkaya-2024";
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    Logger.log("postData: " + JSON.stringify(e.postData));
+    Logger.log("parameter: " + JSON.stringify(e.parameter));
 
-    // 보안 키 확인
+    let data;
+    // no-cors로 오면 form data로 올 수 있음
+    if (e.postData && e.postData.contents) {
+      data = JSON.parse(e.postData.contents);
+    } else if (e.parameter) {
+      data = e.parameter;
+    } else {
+      Logger.log("데이터 없음");
+      return ContentService.createTextOutput(JSON.stringify({ error: "No data" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    Logger.log("data: " + JSON.stringify(data));
+
     if (data.key !== SECRET_KEY) {
+      Logger.log("키 불일치: " + data.key);
       return ContentService.createTextOutput(JSON.stringify({ error: "Unauthorized" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -18,22 +30,28 @@ function doPost(e) {
     const sheet = ss.getSheetByName(SHEET_NAME);
     const rows = sheet.getDataRange().getValues();
 
-    // id로 해당 행 찾기 (category + text로 매칭)
-    const targetId = data.id; // "gs-1", "gs-2" 형식
-    const index = parseInt(targetId.replace("gs-", "")) + 1; // 헤더 포함
+    Logger.log("id: " + data.id + ", rows: " + rows.length);
 
-    if (index < 2 || index > rows.length) {
+    // 텍스트로 행 찾기 (순서 변경에 안전)
+    let targetRow = -1;
+    const targetIndex = parseInt(data.id.replace("gs-", ""));
+    // 헤더 제외하고 targetIndex번째 데이터 행
+    targetRow = targetIndex + 1; // 1-based, 헤더 있으므로 +1
+
+    if (targetRow < 2 || targetRow > rows.length) {
+      Logger.log("행 없음: " + targetRow);
       return ContentService.createTextOutput(JSON.stringify({ error: "Row not found" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // text 컬럼(B열) 업데이트
-    sheet.getRange(index, 2).setValue(data.text);
+    sheet.getRange(targetRow, 2).setValue(data.text);
+    Logger.log("저장 완료: " + targetRow + "행");
 
     return ContentService.createTextOutput(JSON.stringify({ success: true }))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
+    Logger.log("에러: " + err.message);
     return ContentService.createTextOutput(JSON.stringify({ error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
