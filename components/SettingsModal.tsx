@@ -14,7 +14,7 @@ interface SettingsModalProps {
   theme: Theme;
   onThemeToggle: () => void;
   fontScale: number;
-  onFontScaleChange: (scale: number) => void;
+  onFontSizeOpen: () => void;
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   colors: ThemeColors;
@@ -32,7 +32,7 @@ export function SettingsModal({
   theme,
   onThemeToggle,
   fontScale,
-  onFontScaleChange,
+  onFontSizeOpen,
   onMeditationStart,
   onQROpen,
   colors,
@@ -102,30 +102,15 @@ export function SettingsModal({
           </button>
         </div>
 
-        {/* 글자 크기 슬라이더 */}
-        <div className="mb-5">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium" style={{ color: colors.text }}>
-              글자 크기
-            </span>
-            <span className="text-xs" style={{ color: colors.textMuted }}>
-              {Math.round(fontScale * 100)}%
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color: colors.textMuted }}>가</span>
-            <input
-              type="range"
-              min="0.7"
-              max="2.5"
-              step="0.05"
-              value={fontScale}
-              onChange={(e) => onFontScaleChange(parseFloat(e.target.value))}
-              className="flex-1 accent-[#9B8B7E]"
-            />
-            <span className="text-base font-bold" style={{ color: colors.textMuted }}>가</span>
-          </div>
-        </div>
+        {/* 글자 크기 버튼 */}
+        <button
+          onClick={() => { onFontSizeOpen(); onClose(); }}
+          className="w-full rounded-xl py-2 text-sm font-medium transition-colors mb-5 flex items-center justify-between px-3"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          <span>글자 크기</span>
+          <span style={{ color: colors.textMuted }}>{Math.round(fontScale * 100)}% ›</span>
+        </button>
 
         {/* 수행 시작 버튼 */}
         <div className="flex gap-2 mb-5">

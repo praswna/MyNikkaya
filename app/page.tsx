@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { DharmaWheel } from "@/components/DharmaWheel";
 import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
+import { FontSizeModal } from "@/components/FontSizeModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -35,6 +36,7 @@ export default function Home() {
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
+  const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -257,9 +259,16 @@ export default function Home() {
         theme={theme}
         onThemeToggle={handleThemeToggle}
         fontScale={fontScale}
-        onFontScaleChange={handleFontScaleChange}
+        onFontSizeOpen={() => setIsFontSizeOpen(true)}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
+        colors={colors}
+      />
+      <FontSizeModal
+        isOpen={isFontSizeOpen}
+        onClose={() => setIsFontSizeOpen(false)}
+        fontScale={fontScale}
+        onFontScaleChange={handleFontScaleChange}
         colors={colors}
       />
       <QRModal
