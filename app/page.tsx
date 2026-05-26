@@ -158,7 +158,7 @@ export default function Home() {
       {showSplash && (
         <SplashScreen colors={colors} onDone={() => setShowSplash(false)} />
       )}
-      <div className="flex h-screen flex-col" style={{ backgroundColor: colors.bg }}>
+      <div className="flex h-screen flex-col overflow-x-hidden" style={{ backgroundColor: colors.bg }}>
       {/* 카테고리 */}
       {categories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain">
