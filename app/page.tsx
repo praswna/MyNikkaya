@@ -367,9 +367,6 @@ export default function Home() {
 
       {/* 하단 버튼 */}
       <div className="px-4 pb-6 pt-4" style={{ borderTop: `1px solid ${colors.border}`, backgroundColor: colors.bg }}>
-        {syncStatus && (
-          <p className="mb-3 text-center text-xs" style={{ color: colors.textMuted }}>{syncStatus}</p>
-        )}
         <div className="flex items-center justify-center gap-6">
           <button
             onClick={() => setIsSettingsOpen(true)}
@@ -410,7 +407,18 @@ export default function Home() {
             </svg>
           </button>
         </div>
-      </div>
+      {syncStatus && (
+        <p
+          className="fixed text-center text-xs"
+          style={{
+            color: colors.textMuted,
+            bottom: "12px",
+            left: 0,
+            right: 0,
+            pointerEvents: "none",
+          }}
+        >{syncStatus}</p>
+      )}
 
       <SettingsModal
         isOpen={isSettingsOpen}
