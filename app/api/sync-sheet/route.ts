@@ -12,13 +12,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing params" }, { status: 400 });
     }
 
-    const params = new URLSearchParams({ key: SECRET_KEY, id, text });
-    const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
-    console.log("Apps Script 요청 URL:", url.substring(0, 100));
+    // POST body로 전송 (URL 길이 제한 + 인코딩 문제 해결)
+    const formData = new URLSearchParams();
+    formData.append("key", SECRET_KEY);
+    formData.append("id", id);
+    formData.append("text", text);
 
-    const res = await fetch(url, { redirect: "follow" });
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
+      redirect: "follow",
+    });
+
     console.log("Apps Script 응답 status:", res.status);
-
     const rawText = await res.text();
     console.log("Apps Script 응답 body:", rawText.substring(0, 200));
 

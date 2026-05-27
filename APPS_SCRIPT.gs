@@ -2,23 +2,26 @@ const SHEET_NAME = "quotes_export";
 const SECRET_KEY = "my-nikkaya-2024";
 
 function doGet(e) {
-  const output = handleRequest(e);
-  return output;
+  return handleRequest(e.parameter);
 }
 
 function doPost(e) {
-  const output = handleRequest(e);
-  return output;
+  // form-urlencoded로 올 때는 e.parameter에 파싱됨
+  Logger.log("doPost e.parameter: " + JSON.stringify(e.parameter));
+  Logger.log("doPost e.postData: " + JSON.stringify(e.postData));
+  return handleRequest(e.parameter);
 }
 
-function handleRequest(e) {
+function handleRequest(params) {
   try {
-    Logger.log("params: " + JSON.stringify(e.parameter));
+    Logger.log("params: " + JSON.stringify(params));
 
-    const { key, id, text } = e.parameter;
+    const key = params.key;
+    const id = params.id;
+    const text = params.text;
 
     if (key !== SECRET_KEY) {
-      Logger.log("키 불일치");
+      Logger.log("키 불일치: " + key);
       return buildResponse({ error: "Unauthorized" });
     }
 
@@ -53,7 +56,6 @@ function handleRequest(e) {
 }
 
 function buildResponse(data) {
-  const output = ContentService.createTextOutput(JSON.stringify(data))
+  return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-  return output;
 }
