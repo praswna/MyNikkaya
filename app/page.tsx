@@ -157,11 +157,8 @@ export default function Home() {
     if (!currentQuote) return;
     setSyncStatus("시트에 저장 중...");
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text, key: SECRET_KEY }),
-      });
+      const params = new URLSearchParams({ key: SECRET_KEY, id: currentQuote.id, text: currentQuote.text });
+      await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, { mode: "no-cors" });
       setSyncStatus("시트 저장 완료 ✓");
     } catch {
       setSyncStatus("시트 저장 실패");
