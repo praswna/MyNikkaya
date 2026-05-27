@@ -181,6 +181,7 @@ export default function Home() {
       : 0;
     setScrollRatio(ratio);
     setIsEditing(true);
+    setEditOpenCount((prev) => prev + 1);
   }, [currentQuote]);
 
   useEffect(() => {
