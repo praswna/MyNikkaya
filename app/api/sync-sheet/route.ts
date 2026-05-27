@@ -5,18 +5,17 @@ const SECRET_KEY = "my-nikkaya-2024";
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, text } = await req.json();
-    console.log("sync-sheet 요청:", { id, text: text?.substring(0, 30) });
+    const { oldText, newText } = await req.json();
+    console.log("sync-sheet 요청:", { oldText: oldText?.substring(0, 30), newText: newText?.substring(0, 30) });
 
-    if (!id || !text) {
+    if (!oldText || !newText) {
       return NextResponse.json({ error: "Missing params" }, { status: 400 });
     }
 
-    // POST body로 전송 (URL 길이 제한 + 인코딩 문제 해결)
     const formData = new URLSearchParams();
     formData.append("key", SECRET_KEY);
-    formData.append("id", id);
-    formData.append("text", text);
+    formData.append("oldText", oldText);
+    formData.append("newText", newText);
 
     const res = await fetch(APPS_SCRIPT_URL, {
       method: "POST",

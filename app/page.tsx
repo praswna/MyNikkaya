@@ -232,7 +232,7 @@ export default function Home() {
         const res = await fetch("/api/sync-sheet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: currentQuote.id, text: editText.trim() }),
+          body: JSON.stringify({ oldText: currentQuote.text, newText: editText.trim() }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error ?? "Unknown error");

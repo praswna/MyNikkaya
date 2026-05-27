@@ -6,9 +6,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  // form-urlencoded로 올 때는 e.parameter에 파싱됨
   Logger.log("doPost e.parameter: " + JSON.stringify(e.parameter));
-  Logger.log("doPost e.postData: " + JSON.stringify(e.postData));
   return handleRequest(e.parameter);
 }
 
@@ -17,16 +15,16 @@ function handleRequest(params) {
     Logger.log("params: " + JSON.stringify(params));
 
     const key = params.key;
-    const id = params.id;
-    const text = params.text;
+    const oldText = params.oldText;
+    const newText = params.newText;
 
     if (key !== SECRET_KEY) {
-      Logger.log("키 불일치: " + key);
+      Logger.log("키 불일치");
       return buildResponse({ error: "Unauthorized" });
     }
 
-    if (!id || !text) {
-      Logger.log("id 또는 text 없음");
+    if (!oldText || !newText) {
+      Logger.log("oldText 또는 newText 없음");
       return buildResponse({ error: "Missing params" });
     }
 
@@ -34,17 +32,21 @@ function handleRequest(params) {
     const sheet = ss.getSheetByName(SHEET_NAME);
     const rows = sheet.getDataRange().getValues();
 
-    const targetIndex = parseInt(id.replace("gs-", ""));
-    const targetRow = targetIndex + 1;
+    // 원본 텍스트로 행 찾기
+    let targetRow = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][1] === oldText) {
+        targetRow = i + 1; // 1-based
+        break;
+      }
+    }
 
-    Logger.log("targetRow: " + targetRow + ", rows: " + rows.length);
-
-    if (targetRow < 2 || targetRow > rows.length) {
-      Logger.log("행 없음");
+    if (targetRow === -1) {
+      Logger.log("일치하는 행 없음");
       return buildResponse({ error: "Row not found" });
     }
 
-    sheet.getRange(targetRow, 2).setValue(text);
+    sheet.getRange(targetRow, 2).setValue(newText);
     Logger.log("저장 완료: " + targetRow + "행");
 
     return buildResponse({ success: true });
