@@ -182,13 +182,14 @@ export default function Home() {
   }, [currentQuote]);
 
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
+    if (isEditing && textareaRef.current && currentQuote) {
       const ta = textareaRef.current;
-      const maxScroll = ta.scrollHeight - ta.clientHeight;
-      ta.scrollTop = maxScroll * scrollRatio;
+      // 스크롤 비율로 텍스트 글자 인덱스 추정
+      const charIndex = Math.floor(scrollRatio * currentQuote.text.length);
       ta.focus();
+      ta.setSelectionRange(charIndex, charIndex);
     }
-  }, [isEditing, scrollRatio]);
+  }, [isEditing, scrollRatio, currentQuote]);
 
   // 수정 저장
   const handleEditSave = useCallback(async () => {
