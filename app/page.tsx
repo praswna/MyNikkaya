@@ -173,12 +173,17 @@ export default function Home() {
     setEditText(currentQuote.text);
     setEditStatus(null);
     setIsEditing(true);
-    // 스크롤 위치 기억 후 textarea에 적용
-    const scrollTop = scrollRef.current?.scrollTop ?? 0;
+    // 스크롤 비율 기반 동기화
+    const el = scrollRef.current;
+    const ratio = el && el.scrollHeight > el.clientHeight
+      ? el.scrollTop / (el.scrollHeight - el.clientHeight)
+      : 0;
     setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.scrollTop = scrollTop;
-        textareaRef.current.focus();
+      const ta = textareaRef.current;
+      if (ta) {
+        const maxScroll = ta.scrollHeight - ta.clientHeight;
+        ta.scrollTop = maxScroll * ratio;
+        ta.focus();
       }
     }, 50);
   }, [currentQuote]);
