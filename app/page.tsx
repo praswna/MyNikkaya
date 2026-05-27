@@ -43,6 +43,7 @@ export default function Home() {
   const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [scrollRatio, setScrollRatio] = useState(0);
+  const [editOpenCount, setEditOpenCount] = useState(0);
   const [editText, setEditText] = useState("");
   const [editStatus, setEditStatus] = useState<string | null>(null);
   const quotesRef = useRef<Quote[]>([]);
