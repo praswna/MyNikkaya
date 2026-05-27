@@ -190,8 +190,7 @@ export default function Home() {
         ta.setSelectionRange(charIndex, charIndex);
         // 커서 위치로 스크롤
         const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 20;
-        const lines = ta.value.substring(0, charIndex).split("
-").length;
+        const lines = ta.value.substring(0, charIndex).split("\n").length;
         ta.scrollTop = (lines - 1) * lineHeight;
       });
     }
