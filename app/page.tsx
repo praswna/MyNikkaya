@@ -46,6 +46,7 @@ export default function Home() {
   const [editStatus, setEditStatus] = useState<string | null>(null);
   const quotesRef = useRef<Quote[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const colors = THEMES[theme];
 
@@ -172,6 +173,14 @@ export default function Home() {
     setEditText(currentQuote.text);
     setEditStatus(null);
     setIsEditing(true);
+    // 스크롤 위치 기억 후 textarea에 적용
+    const scrollTop = scrollRef.current?.scrollTop ?? 0;
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.scrollTop = scrollTop;
+        textareaRef.current.focus();
+      }
+    }, 50);
   }, [currentQuote]);
 
   // 수정 저장
@@ -285,6 +294,7 @@ export default function Home() {
       {isEditing && (
         <div className="fixed inset-0 z-30 flex flex-col p-4" style={{ backgroundColor: colors.bg }}>
           <textarea
+            ref={textareaRef}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             className="flex-1 rounded-xl p-4 resize-none outline-none"
@@ -296,7 +306,6 @@ export default function Home() {
               lineHeight: "1.6",
               fontSize: scaledFontSize,
             }}
-            autoFocus
           />
           {editStatus && (
             <p className="mt-2 text-xs text-center" style={{ color: colors.textMuted }}>{editStatus}</p>
