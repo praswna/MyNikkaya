@@ -157,8 +157,11 @@ export default function Home() {
     if (!currentQuote) return;
     setSyncStatus("시트에 저장 중...");
     try {
-      const params = new URLSearchParams({ key: SECRET_KEY, id: currentQuote.id, text: currentQuote.text });
-      const res = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, { redirect: "follow" });
+      const res = await fetch("/api/sync-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text }),
+      });
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? "Unknown error");
       setSyncStatus("시트 저장 완료 ✓");
