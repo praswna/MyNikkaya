@@ -158,7 +158,16 @@ export default function Home() {
     setSyncStatus("시트에 저장 중...");
     try {
       const params = new URLSearchParams({ key: SECRET_KEY, id: currentQuote.id, text: currentQuote.text });
-      await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, { mode: "no-cors" });
+      const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+      // JSONP 방식으로 요청 (CORS 우회)
+      await new Promise<void>((resolve) => {
+        const script = document.createElement("script");
+        script.src = url;
+        script.onload = () => { script.remove(); resolve(); };
+        script.onerror = () => { script.remove(); resolve(); };
+        document.head.appendChild(script);
+        setTimeout(() => { script.remove(); resolve(); }, 5000);
+      });
       setSyncStatus("시트 저장 완료 ✓");
     } catch {
       setSyncStatus("시트 저장 실패");
