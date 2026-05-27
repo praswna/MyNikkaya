@@ -184,10 +184,12 @@ export default function Home() {
   useEffect(() => {
     if (isEditing && textareaRef.current && currentQuote) {
       const ta = textareaRef.current;
-      // 스크롤 비율로 텍스트 글자 인덱스 추정
       const charIndex = Math.floor(scrollRatio * currentQuote.text.length);
       ta.focus();
-      ta.setSelectionRange(charIndex, charIndex);
+      // focus 후 다음 프레임에 커서 이동
+      requestAnimationFrame(() => {
+        ta.setSelectionRange(charIndex, charIndex);
+      });
     }
   }, [isEditing, scrollRatio, currentQuote]);
 
