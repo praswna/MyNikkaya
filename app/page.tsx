@@ -186,9 +186,13 @@ export default function Home() {
       const ta = textareaRef.current;
       const charIndex = Math.floor(scrollRatio * currentQuote.text.length);
       ta.focus();
-      // focus 후 다음 프레임에 커서 이동
       requestAnimationFrame(() => {
         ta.setSelectionRange(charIndex, charIndex);
+        // 커서 위치로 스크롤
+        const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 20;
+        const lines = ta.value.substring(0, charIndex).split("
+").length;
+        ta.scrollTop = (lines - 1) * lineHeight;
       });
     }
   }, [isEditing, scrollRatio, currentQuote]);
