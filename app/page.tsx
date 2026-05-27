@@ -199,41 +199,50 @@ export default function Home() {
   }, [isEditing, scrollRatio, currentQuote]);
 
   // 수정 저장
-  const handleEditSave = useCallback(async () => {
+  const handleEditSave = useCallback(() => {
     if (!currentQuote || !editText.trim()) return;
-    setEditStatus("저장 중...");
 
     const updated: Quote = { ...currentQuote, text: editText.trim() };
 
-    // localStorage 업데이트
-    try {
-      const cached = localStorage.getItem("quotes_cache");
-      if (cached) {
-        const quotes: Quote[] = JSON.parse(cached);
-        const idx = quotes.findIndex((q) => q.id === currentQuote.id);
-        if (idx !== -1) {
-          quotes[idx] = updated;
-          localStorage.setItem("quotes_cache", JSON.stringify(quotes));
-          quotesRef.current = quotes;
-        }
-      }
-    } catch {}
-
-    // Apps Script 업데이트 (no-cors)
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ id: currentQuote.id, text: editText.trim(), key: SECRET_KEY }),
-      });
-    } catch {}
-
+    // 편집 화면 즉시 닫기
+    setIsEditing(false);
+    setEditStatus(null);
     setCurrentQuote(updated);
-    setEditStatus("저장 완료 ✓");
-    setTimeout(() => {
-      setIsEditing(false);
-      setEditStatus(null);
-    }, 1000);
+
+    // 백그라운드에서 저장 + 동기화
+    (async () => {
+      // 1. 로컬 저장
+      setSyncStatus("저장 중...");
+      try {
+        const cached = localStorage.getItem("quotes_cache");
+        if (cached) {
+          const quotes: Quote[] = JSON.parse(cached);
+          const idx = quotes.findIndex((q) => q.id === currentQuote.id);
+          if (idx !== -1) {
+            quotes[idx] = updated;
+            localStorage.setItem("quotes_cache", JSON.stringify(quotes));
+            quotesRef.current = quotes;
+          }
+        }
+      } catch {}
+
+      // 2. 시트 동기화
+      setSyncStatus("동기화 중...");
+      try {
+        const res = await fetch("/api/sync-sheet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: currentQuote.id, text: editText.trim() }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error ?? "Unknown error");
+        setSyncStatus("완료 ✓");
+      } catch {
+        setSyncStatus("동기화 실패");
+      }
+
+      setTimeout(() => setSyncStatus(null), 2000);
+    })();
   }, [currentQuote, editText]);
 
   if (isLoading) {
@@ -409,7 +418,6 @@ export default function Home() {
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
-        onSheetSync={handleSheetSync}
         colors={colors}
       />
       <FontSizeModal

@@ -18,7 +18,6 @@ interface SettingsModalProps {
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   onEditOpen: () => void;
-  onSheetSync: () => void;
   colors: ThemeColors;
 }
 
@@ -91,7 +90,7 @@ const Icons = {
 
 export function SettingsModal({
   isOpen, onClose, theme, onThemeToggle, fontScale,
-  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onSheetSync, colors,
+  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEffect(() => {
@@ -176,16 +175,6 @@ export function SettingsModal({
         >
           {Icons.edit(colors.textMuted)}
           <span>내용 수정</span>
-        </button>
-
-        {/* 시트 동기화 */}
-        <button
-          onClick={() => { onSheetSync(); onClose(); }}
-          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
-          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
-        >
-          {Icons.sync(colors.textMuted)}
-          <span>시트 동기화</span>
         </button>
 
         {/* QR 코드 */}
