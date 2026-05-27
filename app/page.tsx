@@ -150,6 +150,22 @@ export default function Home() {
     try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
   }, []);
 
+  // 시트 동기화 (현재 명언)
+  const handleSheetSync = useCallback(async () => {
+    if (!currentQuote) return;
+    setSyncStatus("시트에 저장 중...");
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text, key: SECRET_KEY }),
+      });
+      setSyncStatus("시트 저장 완료 ✓");
+    } catch {
+      setSyncStatus("시트 저장 실패");
+    }
+  }, [currentQuote]);
+
   // 수정 모드 시작
   const handleEditOpen = useCallback(() => {
     if (!currentQuote) return;
@@ -369,6 +385,7 @@ export default function Home() {
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
+        onSheetSync={handleSheetSync}
         colors={colors}
       />
       <FontSizeModal

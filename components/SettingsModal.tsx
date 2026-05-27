@@ -18,6 +18,7 @@ interface SettingsModalProps {
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   onEditOpen: () => void;
+  onSheetSync: () => void;
   colors: ThemeColors;
 }
 
@@ -167,6 +168,21 @@ export function SettingsModal({
         >
           {Icons.edit(colors.textMuted)}
           <span>내용 수정</span>
+        </button>
+
+        {/* 시트 동기화 */}
+        <button
+          onClick={() => { onSheetSync(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M8 16H3v5" />
+          </svg>
+          <span>시트 동기화</span>
         </button>
 
         {/* QR 코드 */}
