@@ -83,7 +83,7 @@ const Icons = {
 
 export function SettingsModal({
   isOpen, onClose, theme, onThemeToggle, fontScale,
-  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, colors,
+  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onSheetSync, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEffect(() => {
@@ -176,7 +176,7 @@ export function SettingsModal({
           className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
           style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
             <path d="M21 3v5h-5" />
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
