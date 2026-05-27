@@ -30,6 +30,7 @@ export default function Home() {
   const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isEditSyncing, setIsEditSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
@@ -104,11 +105,11 @@ export default function Home() {
 
   const handleNewQuote = useCallback(() => {
     setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
-    setSyncStatus(null);
     setIsEditing(false);
     setEditStatus(null);
     scrollRef.current?.scrollTo({ top: 0 });
     setWheelRotate((prev) => prev + 45);
+    setIsEditSyncing((syncing) => { if (!syncing) setSyncStatus(null); return syncing; });
   }, [selectedCategory]);
 
   const handleSync = useCallback(async () => {
@@ -229,6 +230,7 @@ export default function Home() {
       } catch {}
 
       // 2. 시트 동기화
+      setIsEditSyncing(true);
       setSyncStatus("동기화 중...");
       try {
         const res = await fetch("/api/sync-sheet", {
