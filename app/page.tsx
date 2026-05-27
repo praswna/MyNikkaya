@@ -42,6 +42,7 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [scrollRatio, setScrollRatio] = useState(0);
   const [editText, setEditText] = useState("");
   const [editStatus, setEditStatus] = useState<string | null>(null);
   const quotesRef = useRef<Quote[]>([]);
@@ -172,21 +173,22 @@ export default function Home() {
     if (!currentQuote) return;
     setEditText(currentQuote.text);
     setEditStatus(null);
-    setIsEditing(true);
-    // 스크롤 비율 기반 동기화
     const el = scrollRef.current;
     const ratio = el && el.scrollHeight > el.clientHeight
       ? el.scrollTop / (el.scrollHeight - el.clientHeight)
       : 0;
-    setTimeout(() => {
-      const ta = textareaRef.current;
-      if (ta) {
-        const maxScroll = ta.scrollHeight - ta.clientHeight;
-        ta.scrollTop = maxScroll * ratio;
-        ta.focus();
-      }
-    }, 50);
+    setScrollRatio(ratio);
+    setIsEditing(true);
   }, [currentQuote]);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      const ta = textareaRef.current;
+      const maxScroll = ta.scrollHeight - ta.clientHeight;
+      ta.scrollTop = maxScroll * scrollRatio;
+      ta.focus();
+    }
+  }, [isEditing, scrollRatio]);
 
   // 수정 저장
   const handleEditSave = useCallback(async () => {
