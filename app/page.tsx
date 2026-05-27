@@ -407,6 +407,7 @@ export default function Home() {
             </svg>
           </button>
         </div>
+      </div>
       {syncStatus && (
         <p
           className="fixed text-center text-xs"
