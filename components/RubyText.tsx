@@ -49,8 +49,6 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
         fontWeight: 900,
         wordBreak: "break-word",
         overflowWrap: "break-word",
-        display: "inline-block",
-        maxWidth: "100%",
       }}>
         {seg.innerSegments.map((inner, j) => renderSegment(inner, j, colors, true))}
       </strong>
