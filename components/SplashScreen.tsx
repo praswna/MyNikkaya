@@ -8,21 +8,34 @@ interface SplashScreenProps {
   onDone: () => void;
 }
 
+// =============================================
+// 스플래시 화면 설정
+// =============================================
+const SPLASH_SHOW_MS = 1500;  // 스플래시 표시 시간 (ms) - 길수록 오래 보임
+const SPLASH_FADE_MS = 700;   // 페이드아웃 시간 (ms)
+
 export function SplashScreen({ colors, onDone }: SplashScreenProps) {
-  const [phase, setPhase] = useState<"show" | "fadeout">("show");
+  const [splashFading, setSplashFading] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const fadeTimer = setTimeout(() => setPhase("fadeout"), 1500);
-    const doneTimer = setTimeout(() => onDone(), 2200);
+    const fadeTimer = setTimeout(() => setSplashFading(true), SPLASH_SHOW_MS);
+    const doneTimer = setTimeout(() => {
+      setShowSplash(false);
+      onDone();
+    }, SPLASH_SHOW_MS + SPLASH_FADE_MS);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(doneTimer);
     };
   }, [onDone]);
 
+  if (!showSplash) return null;
+
   const center = 50;
   const outerRadius = 38;
   const innerRadius = 10;
+  // 법륜 살 각도 (8개, 45도 간격)
   const spokeAngles = Array.from({ length: 8 }, (_, i) => (i * 45 * Math.PI) / 180);
 
   return (
@@ -30,8 +43,8 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
       style={{
         backgroundColor: colors.bg,
-        opacity: phase === "fadeout" ? 0 : 1,
-        transition: "opacity 0.7s ease-out",
+        opacity: splashFading ? 0 : 1,
+        transition: `opacity ${SPLASH_FADE_MS}ms ease-out`,
       }}
     >
       <style>{`
@@ -41,6 +54,7 @@ export function SplashScreen({ colors, onDone }: SplashScreenProps) {
         }
       `}</style>
 
+      {/* 법륜 회전 속도: 숫자가 클수록 느리게 회전 (단위: 초) */}
       <div style={{ animation: "spin-in-place 15s linear infinite" }}>
         <svg width="160" height="160" viewBox="0 0 100 100">
           <circle
