@@ -196,13 +196,12 @@ export function SettingsModal({
             </div>
             <div className="flex flex-col gap-1">
               {links.map((link) => (
-                <button key={link.url}
-                  onClick={() => { window.location.href = link.url; }}
-                  className="rounded-lg px-3 py-2 text-sm transition-colors text-left w-full"
-                  style={{ backgroundColor: colors.bg, color: colors.text, border: "none", cursor: "pointer" }}
+                <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer"
+                  className="rounded-lg px-3 py-2 text-sm transition-colors"
+                  style={{ backgroundColor: colors.bg, color: colors.text }}
                 >
                   {link.name}
-                </button>
+                </a>
               ))}
             </div>
           </div>
