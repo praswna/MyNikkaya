@@ -21,7 +21,7 @@ const STORAGE_KEY_FONT_SCALE = "app_font_scale"; // 글자 크기 localStorage �
 // Google Apps Script 배포 URL (시트 동기화용)
 // 수정하려면 Apps Script에서 새 버전 배포 후 URL 교체
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8dYkRH1kUKiTfYvZ1jl2vZPR81GD2uhnU0oOPcP9gJKnGD3l0NrBtEuUdeVOfsg-b/exec";
-const SECRET_KEY = "my-nikkaya-2024"; // Apps Script 보안 키 (APPS_SCRIPT.gs와 일치해야 함)
+const SECRET_KEY = "my-nikkaya-2024"; // Apps Script 보안 키 (APPS_SCRIPT.gs와 일치해야 함) // Apps Script 보안 키 (APPS_SCRIPT.gs와 일치해야 함)
 
 function pickRandom(quotes: Quote[], category: string | null, excludeId?: string): Quote | null {
   let pool = category ? quotes.filter((q) => q.category === category) : quotes;

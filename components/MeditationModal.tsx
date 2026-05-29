@@ -17,10 +17,11 @@ function formatTime(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+// 수행 시간별 오디오 파일 매핑 (public/ 폴더의 mp3 파일)
 function getAudioSrc(duration: number): string {
-  if (duration <= 15 * 60) return "/bell_15m.mp3";
-  if (duration <= 30 * 60) return "/bell_30m.mp3";
-  return "/bell_1h.mp3";
+  if (duration <= 15 * 60) return "/bell_15m.mp3"; // 15분
+  if (duration <= 30 * 60) return "/bell_30m.mp3"; // 30분
+  return "/bell_1h.mp3";                           // 1시간
 }
 
 const PREP_SECONDS = 5;
@@ -107,7 +108,7 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
     const src = getAudioSrc(duration);
     const audio = new Audio(src);
     audio.preload = "auto";
-    audio.volume = 1.0;
+    audio.volume = 1.0; // 볼륨 (0.0 ~ 1.0)
     audioRef.current = audio;
 
     const handleProgress = () => {

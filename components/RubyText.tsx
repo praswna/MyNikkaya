@@ -11,20 +11,23 @@ interface RubyTextProps {
   colors: ThemeColors;
 }
 
+// 루비 베이스 텍스트 크기 - 너무 길면 자동 축소 (가로 스크롤 방지)
 function getBaseFontSize(text: string): string {
   const len = text.length;
-  if (len > 25) return "0.45em";
-  if (len > 18) return "0.6em";
-  if (len > 12) return "0.8em";
-  return "1em";
+  if (len > 25) return "0.45em"; // 매우 긴 베이스
+  if (len > 18) return "0.6em";  // 긴 베이스
+  if (len > 12) return "0.8em";  // 중간 베이스
+  return "1em";                  // 짧은 베이스 (기본)
 }
 
+// 루비 텍스트(위첨자) 크기 - 글자 수 기준 자동 조절
+// 값이 작을수록 루비 텍스트가 작아짐
 function getRubyFontSize(parts: string[]): string {
   const maxLen = Math.max(...parts.map((r) => r.length));
-  if (maxLen > 12) return "0.38em";
-  if (maxLen > 8)  return "0.44em";
-  if (maxLen > 4)  return "0.50em";
-  return "0.55em";
+  if (maxLen > 12) return "0.38em"; // 매우 긴 루비
+  if (maxLen > 8)  return "0.44em"; // 긴 루비
+  if (maxLen > 4)  return "0.50em"; // 중간 루비
+  return "0.55em";                  // 짧은 루비 (기본)
 }
 
 function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: boolean): React.ReactNode {
@@ -45,7 +48,7 @@ function renderSegment(seg: RubySegment, i: number, colors: ThemeColors, bold: b
         href={seg.content}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ color: colors.textEmphasis, textDecoration: "underline", wordBreak: "break-all", fontSize: "0.4em" }}
+        style={{ color: colors.textEmphasis, textDecoration: "underline", wordBreak: "break-all", fontSize: "0.4em" /* 링크 텍스트 크기 */ }}
       >
         {seg.content}
       </a>
