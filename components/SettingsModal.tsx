@@ -21,18 +21,13 @@ interface SettingsModalProps {
   colors: ThemeColors;
 }
 
-// =============================================
-// 수행 종 버튼 설정
-// 여기에 수행 시간 버튼을 추가/수정할 수 있어요
-// duration 단위: 초
-// =============================================
 const BELL_FILES: { duration: number; label: string }[] = [
-  { duration: 15 * 60, label: "15분" },  // 15분 수행
-  { duration: 30 * 60, label: "30분" },  // 30분 수행
-  { duration: 60 * 60, label: "1시간" }, // 1시간 수행
+  { duration: 15 * 60, label: "15분" },
+  { duration: 30 * 60, label: "30분" },
+  { duration: 60 * 60, label: "1시간" },
 ];
 
-// 라인아트 SVG 아이콘 모음
+// 라인아트 SVG 아이콘들
 const Icons = {
   sun: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -77,18 +72,18 @@ const Icons = {
       <line x1="14" y1="21" x2="14" y2="21" />
     </svg>
   ),
-  link: (color: string) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-  ),
   sync: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
       <path d="M21 3v5h-5" />
       <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
       <path d="M8 16H3v5" />
+    </svg>
+  ),
+  link: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   ),
 };
@@ -98,8 +93,6 @@ export function SettingsModal({
   onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
-
-  // 설정창 열릴 때 links.json에서 참고 사이트 로드
   useEffect(() => {
     if (!isOpen) return;
     fetch("/links.json").then((r) => r.json()).then(setLinks).catch(() => {});
@@ -110,17 +103,14 @@ export function SettingsModal({
 
   return (
     <>
-      {/* 배경 딤처리 */}
       <div className="fixed inset-0 z-40" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
-
-      {/* 설정 팝업 */}
       <div
         className="fixed bottom-28 left-1/2 z-50 w-72 -translate-x-1/2 rounded-2xl p-5 shadow-2xl"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >
         <h2 className="mb-5 text-center text-sm font-semibold tracking-wide" style={{ color: colors.textMuted }}>설정</h2>
 
-        {/* 다크/라이트 모드 토글 */}
+        {/* 테마 토글 */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isLight ? Icons.sun(colors.text) : Icons.moon(colors.text)}
@@ -131,33 +121,20 @@ export function SettingsModal({
           <button
             onClick={onThemeToggle}
             style={{
-              position: "relative",
-              width: "44px",   // 토글 버튼 너비
-              height: "24px",  // 토글 버튼 높이
-              borderRadius: "12px",
+              position: "relative", width: "44px", height: "24px", borderRadius: "12px",
               backgroundColor: isLight ? colors.categorySelected : colors.categoryBorder,
-              transition: "background-color 0.2s",
-              padding: 0,
-              border: "none",
-              cursor: "pointer",
+              transition: "background-color 0.2s", padding: 0, border: "none", cursor: "pointer",
             }}
           >
             <span style={{
-              position: "absolute",
-              top: "2px",
-              left: "2px",
-              width: "20px",
-              height: "20px",
-              borderRadius: "10px",
-              backgroundColor: colors.text,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-              transform: isLight ? "translateX(20px)" : "translateX(0)",
-              transition: "transform 0.2s",
+              position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px",
+              borderRadius: "10px", backgroundColor: colors.text, boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              transform: isLight ? "translateX(20px)" : "translateX(0)", transition: "transform 0.2s",
             }} />
           </button>
         </div>
 
-        {/* 글자 크기 버튼 → FontSizeModal 팝업 열기 */}
+        {/* 글자 크기 */}
         <button
           onClick={() => { onFontSizeOpen(); onClose(); }}
           className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center justify-between px-3"
@@ -167,11 +144,10 @@ export function SettingsModal({
             {Icons.text(colors.text)}
             <span>글자 크기</span>
           </div>
-          {/* 현재 글자 크기 % 표시 */}
           <span style={{ color: colors.textMuted }}>{Math.round(fontScale * 100)}% ›</span>
         </button>
 
-        {/* 수행 종 버튼들 */}
+        {/* 수행 종 */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2 px-1">
             {Icons.bell(colors.textMuted)}
@@ -191,7 +167,7 @@ export function SettingsModal({
           </div>
         </div>
 
-        {/* 내용 수정 버튼 */}
+        {/* 내용 수정 */}
         <button
           onClick={() => { onEditOpen(); onClose(); }}
           className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
@@ -201,7 +177,7 @@ export function SettingsModal({
           <span>내용 수정</span>
         </button>
 
-        {/* QR 코드 버튼 */}
+        {/* QR 코드 */}
         <button
           onClick={onQROpen}
           className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center gap-2 px-3"
@@ -211,7 +187,7 @@ export function SettingsModal({
           <span>QR 코드</span>
         </button>
 
-        {/* 참고 사이트 링크 (links.json에서 로드) */}
+        {/* 링크 */}
         {links.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2 px-1">
