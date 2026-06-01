@@ -18,6 +18,7 @@ interface SettingsModalProps {
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   onEditOpen: () => void;
+  onTranslateOpen: () => void;
   colors: ThemeColors;
 }
 
@@ -90,7 +91,7 @@ const Icons = {
 
 export function SettingsModal({
   isOpen, onClose, theme, onThemeToggle, fontScale,
-  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, colors,
+  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onTranslateOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEffect(() => {
