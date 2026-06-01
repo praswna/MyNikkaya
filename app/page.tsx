@@ -7,7 +7,6 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
-import { TranslateModal } from "@/components/TranslateModal";
 import { PromptModal } from "@/components/PromptModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
@@ -39,7 +38,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isEditSyncing, setIsEditSyncing] = useState(false);
-  const [isTranslateOpen, setIsTranslateOpen] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -441,7 +439,6 @@ export default function Home() {
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
-        onTranslateOpen={() => setIsTranslateOpen(true)}
         onPromptOpen={() => setIsPromptOpen(true)}
         colors={colors}
       />
@@ -449,18 +446,6 @@ export default function Home() {
         isOpen={isPromptOpen}
         onClose={() => setIsPromptOpen(false)}
         colors={colors}
-      />
-      <TranslateModal
-        isOpen={isTranslateOpen}
-        onClose={() => setIsTranslateOpen(false)}
-        onSave={(newQuote) => {
-          quotesRef.current = [...quotesRef.current, newQuote];
-          setCurrentQuote(newQuote);
-          const cats = Array.from(new Set(quotesRef.current.map((q) => q.category)));
-          setCategories(cats);
-        }}
-        colors={colors}
-        nextId={`gs-${quotesRef.current.length + 1}`}
       />
       <FontSizeModal
         isOpen={isFontSizeOpen}
