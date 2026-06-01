@@ -179,6 +179,21 @@ export function SettingsModal({
           <span>내용 수정</span>
         </button>
 
+        {/* 번역 프롬프트 버튼 */}
+        <button
+          onClick={() => { onPromptOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span>번역 프롬프트</span>
+        </button>
+
         {/* 경전 번역 버튼 */}
         <button
           onClick={() => { onTranslateOpen(); onClose(); }}
