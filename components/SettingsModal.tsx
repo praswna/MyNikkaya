@@ -178,6 +178,19 @@ export function SettingsModal({
           <span>내용 수정</span>
         </button>
 
+        {/* 경전 번역 버튼 */}
+        <button
+          onClick={() => { onTranslateOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/>
+            <path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/>
+          </svg>
+          <span>경전 번역</span>
+        </button>
+
         {/* QR 코드 */}
         <button
           onClick={onQROpen}
