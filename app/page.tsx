@@ -8,6 +8,7 @@ import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
 import { TranslateModal } from "@/components/TranslateModal";
+import { PromptModal } from "@/components/PromptModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -39,6 +40,7 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isEditSyncing, setIsEditSyncing] = useState(false);
   const [isTranslateOpen, setIsTranslateOpen] = useState(false);
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
@@ -440,6 +442,12 @@ export default function Home() {
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
         onTranslateOpen={() => setIsTranslateOpen(true)}
+        onPromptOpen={() => setIsPromptOpen(true)}
+        colors={colors}
+      />
+      <PromptModal
+        isOpen={isPromptOpen}
+        onClose={() => setIsPromptOpen(false)}
         colors={colors}
       />
       <TranslateModal
