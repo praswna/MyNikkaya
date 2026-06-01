@@ -82,36 +82,7 @@ export function PromptModal({ isOpen, onClose, colors }: PromptModalProps) {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold" style={{ color: colors.textMuted }}>번역 프롬프트</h2>
-        <div className="flex items-center gap-2">
-          {/* 복사 버튼 */}
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium"
-            style={{
-              backgroundColor: copied ? colors.categorySelected : colors.bgSecondary,
-              color: copied ? colors.categorySelectedText : colors.textMuted,
-              border: `1px solid ${colors.border}`,
-            }}
-          >
-            {copied ? (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                복사됨
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>
-                복사
-              </>
-            )}
-          </button>
-          <button onClick={onClose} style={{ color: colors.textMuted, fontSize: "1.2rem" }}>✕</button>
-        </div>
+<button onClick={onClose} style={{ color: colors.textMuted, fontSize: "1.2rem" }}>✕</button>
       </div>
 
       {/* 프롬프트 textarea */}
@@ -134,6 +105,27 @@ export function PromptModal({ isOpen, onClose, colors }: PromptModalProps) {
           className="rounded-xl px-4 py-3 text-sm font-medium"
           style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
         >초기화</button>
+        <button
+          onClick={handleCopy}
+          className="flex items-center justify-center gap-1 rounded-xl px-4 py-3 text-sm font-medium"
+          style={{
+            backgroundColor: copied ? colors.categorySelected : colors.bgSecondary,
+            color: copied ? colors.categorySelectedText : colors.textMuted,
+            border: `1px solid ${colors.border}`,
+          }}
+        >
+          {copied ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+          {copied ? "복사됨" : "복사"}
+        </button>
         <button
           onClick={handleSave}
           className="flex-1 rounded-xl py-3 text-sm font-medium"
