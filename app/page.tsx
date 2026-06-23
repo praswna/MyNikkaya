@@ -147,6 +147,7 @@ export default function Home() {
     setCurrentQuote(pickRandom(quotesRef.current, next));
     setIsEditing(false);
     setEditStatus(null);
+    scrollRef.current?.scrollTo({ top: 0 });
   }, [selectedCategory]);
 
   const handleThemeToggle = useCallback(() => {
