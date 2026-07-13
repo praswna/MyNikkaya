@@ -281,7 +281,6 @@ export default function Home() {
       style={{
         backgroundColor: colors.bg,
         paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
       {showSplash && <div
@@ -391,7 +390,14 @@ export default function Home() {
       </div>
 
       {/* 하단 버튼 */}
-      <div className="px-4 pb-6 pt-4" style={{ borderTop: `1px solid ${colors.border}`, backgroundColor: colors.bg }}>
+      <div
+        className="px-4 pt-3"
+        style={{
+          borderTop: `1px solid ${colors.border}`,
+          backgroundColor: colors.bg,
+          paddingBottom: "max(env(safe-area-inset-bottom), 0.75rem)",
+        }}
+      >
         <div className="flex items-center justify-center gap-6">
           <button
             onClick={() => setIsSettingsOpen(true)}
