@@ -395,7 +395,7 @@ export default function Home() {
         style={{
           borderTop: `1px solid ${colors.border}`,
           backgroundColor: colors.bg,
-          paddingBottom: "max(env(safe-area-inset-bottom), 0.75rem)",
+          paddingBottom: "max(calc(env(safe-area-inset-bottom) - 1rem), 0.5rem)",
         }}
       >
         <div className="flex items-center justify-center gap-6">
