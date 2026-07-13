@@ -79,6 +79,8 @@ export default function Home() {
       newMeta.content = colors.bg;
       document.head.appendChild(newMeta);
     }
+    document.documentElement.style.backgroundColor = colors.bg;
+    document.body.style.backgroundColor = colors.bg;
   }, [colors.bg]);
 
   useEffect(() => {
@@ -274,7 +276,14 @@ export default function Home() {
   const scaledFontSize = Math.round(metrics.fontSize * fontScale);
 
   return (
-    <div className="flex h-screen flex-col overflow-x-hidden" style={{ backgroundColor: colors.bg }}>
+    <div
+      className="flex h-screen flex-col overflow-x-hidden"
+      style={{
+        backgroundColor: colors.bg,
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
       {showSplash && <div
         className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
         style={{
@@ -329,7 +338,14 @@ export default function Home() {
 
       {/* 수정 모드 전체화면 */}
       {isEditing && (
-        <div className="fixed inset-0 z-30 flex flex-col p-4" style={{ backgroundColor: colors.bg }}>
+        <div
+          className="fixed inset-0 z-30 flex flex-col p-4"
+          style={{
+            backgroundColor: colors.bg,
+            paddingTop: "calc(env(safe-area-inset-top) + 1rem)",
+            paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)",
+          }}
+        >
           <textarea
             ref={textareaRef}
             value={editText}
