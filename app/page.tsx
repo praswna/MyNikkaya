@@ -277,7 +277,7 @@ export default function Home() {
 
   return (
     <div
-      className="flex h-screen flex-col overflow-x-hidden"
+      className="fixed inset-0 flex flex-col overflow-hidden"
       style={{
         backgroundColor: colors.bg,
         paddingTop: "env(safe-area-inset-top)",
