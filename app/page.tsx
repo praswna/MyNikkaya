@@ -8,6 +8,7 @@ import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
 import { PromptModal } from "@/components/PromptModal";
+import { CanonMapModal } from "@/components/CanonMapModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -45,6 +46,8 @@ export default function Home() {
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const [isCanonMapOpen, setIsCanonMapOpen] = useState(false);
+  const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
   const [wheelRotate, setWheelRotate] = useState(0);
@@ -95,6 +98,7 @@ export default function Home() {
   const applyQuotes = useCallback((quotes: Quote[], category: string | null) => {
     const uniqueCategories = Array.from(new Set(quotes.map((q) => q.category)));
     quotesRef.current = quotes;
+    setAllQuotes(quotes);
     setCategories(uniqueCategories);
     setCurrentQuote(pickRandom(quotes, category));
   }, []);
@@ -112,6 +116,14 @@ export default function Home() {
     };
     init();
   }, [applyQuotes]);
+
+  const handleCanonSelect = useCallback((quote: Quote) => {
+    setIsCanonMapOpen(false);
+    setIsEditing(false);
+    setEditStatus(null);
+    setCurrentQuote(quote);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, []);
 
   const handleNewQuote = useCallback(() => {
     setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
@@ -463,6 +475,14 @@ export default function Home() {
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
         onPromptOpen={() => setIsPromptOpen(true)}
+        onCanonMapOpen={() => setIsCanonMapOpen(true)}
+        colors={colors}
+      />
+      <CanonMapModal
+        isOpen={isCanonMapOpen}
+        onClose={() => setIsCanonMapOpen(false)}
+        quotes={allQuotes}
+        onSelectQuote={handleCanonSelect}
         colors={colors}
       />
       <PromptModal

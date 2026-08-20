@@ -19,6 +19,7 @@ interface SettingsModalProps {
   onQROpen: () => void;
   onEditOpen: () => void;
   onPromptOpen: () => void;
+  onCanonMapOpen: () => void;
   colors: ThemeColors;
 }
 
@@ -81,6 +82,13 @@ const Icons = {
       <path d="M8 16H3v5" />
     </svg>
   ),
+  map: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  ),
   link: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -91,7 +99,7 @@ const Icons = {
 
 export function SettingsModal({
   isOpen, onClose, theme, onThemeToggle, fontScale,
-  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, colors,
+  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEffect(() => {
@@ -167,6 +175,16 @@ export function SettingsModal({
             ))}
           </div>
         </div>
+
+        {/* 불교 경전 맵 */}
+        <button
+          onClick={() => { onCanonMapOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          {Icons.map(colors.text)}
+          <span>불교 경전 맵</span>
+        </button>
 
         {/* 내용 수정 */}
         <button
