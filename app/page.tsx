@@ -11,6 +11,7 @@ import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
+import { findEditAnchor, measureScrollTop } from "@/lib/edit-position";
 import { THEMES, type Theme } from "@/lib/theme";
 import type { Quote } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [scrollRatio, setScrollRatio] = useState(0);
+  const [editAnchor, setEditAnchor] = useState(0);
   const [editOpenCount, setEditOpenCount] = useState(0);
   const [editText, setEditText] = useState("");
   const [editStatus, setEditStatus] = useState<string | null>(null);
@@ -200,29 +201,23 @@ export default function Home() {
     if (!currentQuote) return;
     setEditText(currentQuote.text);
     setEditStatus(null);
-    const el = scrollRef.current;
-    const ratio = el && el.scrollHeight > el.clientHeight
-      ? el.scrollTop / (el.scrollHeight - el.clientHeight)
-      : 0;
-    setScrollRatio(ratio);
+    // 읽기 화면 맨 위에 보이던 글자의 원문 위치를 기억해 둔다
+    setEditAnchor(findEditAnchor(scrollRef.current, currentQuote.text));
     setIsEditing(true);
     setEditOpenCount((prev) => prev + 1);
   }, [currentQuote]);
 
   useEffect(() => {
-    if (isEditing && textareaRef.current && currentQuote) {
-      const ta = textareaRef.current;
-      const charIndex = Math.floor(scrollRatio * currentQuote.text.length);
-      ta.focus();
-      requestAnimationFrame(() => {
-        ta.setSelectionRange(charIndex, charIndex);
-        // 커서 위치로 스크롤
-        const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 20;
-        const lines = ta.value.substring(0, charIndex).split("\n").length;
-        ta.scrollTop = (lines - 1) * lineHeight;
-      });
-    }
-  }, [isEditing, scrollRatio, currentQuote]);
+    if (!isEditing || !textareaRef.current) return;
+    const ta = textareaRef.current;
+    ta.focus();
+    requestAnimationFrame(() => {
+      ta.setSelectionRange(editAnchor, editAnchor);
+      // 한 줄 여유를 둬서 맞춘 줄이 화면 맨 끝에 붙지 않게 한다
+      const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 0;
+      ta.scrollTop = Math.max(measureScrollTop(ta, editAnchor) - lineHeight, 0);
+    });
+  }, [isEditing, editAnchor]);
 
   // 수정 저장
   const handleEditSave = useCallback(() => {
