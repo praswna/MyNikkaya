@@ -511,6 +511,13 @@ export function buildCanonIndex(quotes: Quote[]): CanonIndex {
   };
 }
 
+// 트리 전체의 노드 id (전체 펼치기용)
+export function allNodeIds(node: CanonNode = CANON): string[] {
+  const ids = [node.id];
+  if (node.children) for (const child of node.children) ids.push(...allNodeIds(child));
+  return ids;
+}
+
 // 보유한 명언이 있는 노드의 조상들을 모두 펼치기 위한 id 집합
 export function expandedIdsFor(index: CanonIndex): Set<string> {
   const ids = new Set<string>();

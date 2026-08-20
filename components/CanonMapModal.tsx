@@ -6,6 +6,7 @@ import {
   CANON,
   buildCanonIndex,
   expandedIdsFor,
+  allNodeIds,
   formatRef,
   type CanonNode,
   type CanonPlacement,
@@ -29,6 +30,10 @@ export function CanonMapModal({ isOpen, onClose, quotes, onSelectQuote, colors }
   const openIds = expanded ?? expandedIdsFor(index);
 
   if (!isOpen) return null;
+
+  const anyOpen = openIds.size > 0;
+  const collapseAll = () => setExpanded(new Set());
+  const expandAll = () => setExpanded(new Set(allNodeIds()));
 
   const toggle = (id: string) => {
     const next = new Set(openIds);
@@ -158,7 +163,7 @@ export function CanonMapModal({ isOpen, onClose, quotes, onSelectQuote, colors }
       </div>
 
       {/* 보기 전환 */}
-      <div className="flex gap-2 px-4 pb-2">
+      <div className="flex items-center gap-2 px-4 pb-2">
         {[
           { key: true, label: "보유한 경만" },
           { key: false, label: "전체 구조" },
@@ -176,6 +181,21 @@ export function CanonMapModal({ isOpen, onClose, quotes, onSelectQuote, colors }
             {opt.label}
           </button>
         ))}
+
+        <button
+          onClick={anyOpen ? collapseAll : expandAll}
+          className="ml-auto flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+          style={{ borderColor: colors.categoryBorder, color: colors.categoryText }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={colors.categoryText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            {anyOpen ? (
+              <><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /></>
+            ) : (
+              <><polyline points="9 21 3 21 3 15" /><polyline points="15 3 21 3 21 9" /></>
+            )}
+          </svg>
+          {anyOpen ? "전체 접기" : "전체 펼치기"}
+        </button>
       </div>
 
       {/* 트리 */}
