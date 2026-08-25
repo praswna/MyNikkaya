@@ -3,8 +3,16 @@ export interface TextMetrics {
   lineHeight: string;
 }
 
+// 주석({루비^주석})은 화면에 흐르지 않으므로 글자 크기 계산에서 뺀다
+function withoutNotes(text: string): string {
+  return text.replace(/\{([^}]*)\}/g, (whole, inner: string) => {
+    const caret = inner.indexOf("^");
+    return caret === -1 ? whole : `{${inner.slice(0, caret)}}`;
+  });
+}
+
 export function getTextMetrics(text: string): TextMetrics {
-  const len = Array.from(text.trim()).length;
+  const len = Array.from(withoutNotes(text).trim()).length;
 
   if (len > 400) return { fontSize: 12, lineHeight: "1.6" };
   if (len > 320) return { fontSize: 13, lineHeight: "1.6" };

@@ -219,15 +219,15 @@ export default function Home() {
     });
   }, [isEditing, editAnchor]);
 
-  // 수정 저장
-  const handleEditSave = useCallback(() => {
-    if (!currentQuote || !editText.trim()) return;
+  // 명언 원문 저장 (로컬 캐시 + 시트 동기화)
+  // 수정 화면 저장과 주석 팝업 저장이 같은 경로를 쓴다
+  const saveQuoteText = useCallback((newText: string) => {
+    if (!currentQuote) return;
+    const trimmed = newText.trim();
+    if (!trimmed || trimmed === currentQuote.text) return;
 
-    const updated: Quote = { ...currentQuote, text: editText.trim() };
-
-    // 편집 화면 즉시 닫기
-    setIsEditing(false);
-    setEditStatus(null);
+    const oldText = currentQuote.text;
+    const updated: Quote = { ...currentQuote, text: trimmed };
     setCurrentQuote(updated);
 
     // 백그라운드에서 저장 + 동기화
@@ -238,7 +238,7 @@ export default function Home() {
         const cached = localStorage.getItem("quotes_cache");
         if (cached) {
           const quotes: Quote[] = JSON.parse(cached);
-          const idx = quotes.findIndex((q) => q.id === currentQuote.id);
+          const idx = quotes.findIndex((q) => q.id === updated.id);
           if (idx !== -1) {
             quotes[idx] = updated;
             localStorage.setItem("quotes_cache", JSON.stringify(quotes));
@@ -254,18 +254,29 @@ export default function Home() {
         const res = await fetch("/api/sync-sheet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldText: currentQuote.text, newText: editText.trim() }),
+          body: JSON.stringify({ oldText, newText: trimmed }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.error ?? "Unknown error");
         setSyncStatus("완료 ✓");
       } catch {
         setSyncStatus("동기화 실패");
+      } finally {
+        setIsEditSyncing(false);
       }
 
       setTimeout(() => setSyncStatus(null), 2000);
     })();
-  }, [currentQuote, editText]);
+  }, [currentQuote]);
+
+  // 수정 저장
+  const handleEditSave = useCallback(() => {
+    if (!currentQuote || !editText.trim()) return;
+    // 편집 화면 즉시 닫기
+    setIsEditing(false);
+    setEditStatus(null);
+    saveQuoteText(editText);
+  }, [currentQuote, editText, saveQuoteText]);
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />;
@@ -392,6 +403,7 @@ export default function Home() {
             fontSize={scaledFontSize}
             lineHeight={metrics.lineHeight}
             colors={colors}
+            onTextChange={saveQuoteText}
           />
         </div>
       </div>

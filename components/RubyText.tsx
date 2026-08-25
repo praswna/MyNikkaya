@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseRubyText } from "@/lib/ruby";
+import { parseRubyText, withNote } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
 import { RubySegment } from "@/lib/types";
 
@@ -10,13 +10,8 @@ interface RubyTextProps {
   fontSize: number;
   lineHeight: string;
   colors: ThemeColors;
-}
-
-// 주석 팝업에 표시할 내용
-interface ActiveNote {
-  base: string;    // 베이스 단어 (예: 불선법)
-  ruby: string[];  // 루비 읽기들 (예: 不善法, unwholesome)
-  note: string;    // 주석 본문
+  // 주석을 추가/수정하면 바뀐 명언 원문 전체를 돌려준다 (없으면 읽기 전용)
+  onTextChange?: (newText: string) => void;
 }
 
 // 루비 베이스 텍스트 크기 - 너무 길면 자동 축소 (가로 스크롤 방지)
@@ -43,7 +38,8 @@ function renderSegment(
   i: number,
   colors: ThemeColors,
   bold: boolean,
-  onNoteOpen: (note: ActiveNote) => void,
+  editable: boolean,
+  onRubyOpen: (seg: RubySegment) => void,
 ): React.ReactNode {
   if (seg.type === "newline") {
     return <br key={i} />;
@@ -51,7 +47,7 @@ function renderSegment(
   if (seg.type === "bold" && seg.innerSegments) {
     return (
       <strong key={i} style={{ color: colors.textBold, fontWeight: 900 }}>
-        {seg.innerSegments.map((inner, j) => renderSegment(inner, j, colors, true, onNoteOpen))}
+        {seg.innerSegments.map((inner, j) => renderSegment(inner, j, colors, true, editable, onRubyOpen))}
       </strong>
     );
   }
@@ -69,30 +65,31 @@ function renderSegment(
     );
   }
   if (seg.type === "ruby" && seg.ruby) {
-    const note = seg.note;
+    // 주석이 있거나(보기), 편집이 가능하면(주석 추가) 누를 수 있다
+    const open = editable || seg.note ? () => onRubyOpen(seg) : undefined;
     return (
       <ruby
         key={i}
-        onClick={note ? () => onNoteOpen({ base: seg.content, ruby: seg.ruby ?? [], note }) : undefined}
-        role={note ? "button" : undefined}
-        tabIndex={note ? 0 : undefined}
-        aria-label={note ? `${seg.content} 주석 보기` : undefined}
-        onKeyDown={note ? (e) => {
+        onClick={open}
+        role={open ? "button" : undefined}
+        tabIndex={open ? 0 : undefined}
+        aria-label={open ? `${seg.content} 주석` : undefined}
+        onKeyDown={open ? (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onNoteOpen({ base: seg.content, ruby: seg.ruby ?? [], note });
+            open();
           }
         } : undefined}
         style={{
           color: bold ? colors.textBold : colors.textEmphasis,
           verticalAlign: "bottom",
           fontSize: getBaseFontSize(seg.content),
-          cursor: note ? "pointer" : undefined,
+          cursor: open ? "pointer" : undefined,
           outline: "none",
         } as React.CSSProperties}
       >
-        {/* 주석이 있으면 베이스 단어에 점선 밑줄로 "누를 수 있음" 표시 */}
-        {note ? (
+        {/* 주석이 달린 단어만 점선 밑줄로 표시 */}
+        {seg.note ? (
           <span style={{ borderBottom: `1px dashed ${colors.rubyText}`, paddingBottom: "0.05em" }}>
             {seg.content}
           </span>
@@ -115,9 +112,27 @@ function renderSegment(
   return <span key={i}>{seg.content}</span>;
 }
 
-// 루비 주석 팝업 (QRModal 과 동일한 오버레이 패턴)
-function NoteModal({ note, onClose, colors }: { note: ActiveNote | null; onClose: () => void; colors: ThemeColors }) {
-  if (!note) return null;
+// 루비 주석 팝업 - 보기 / 추가 / 수정 / 삭제 (QRModal 과 동일한 오버레이 패턴)
+function NoteModal({
+  seg,
+  onClose,
+  onSave,
+  colors,
+  editable,
+}: {
+  seg: RubySegment;
+  onClose: () => void;
+  onSave: (note: string) => void;
+  colors: ThemeColors;
+  editable: boolean;
+}) {
+  // 주석이 없는 단어를 누른 경우엔 바로 입력 화면으로 연다
+  const [isEditing, setIsEditing] = useState(editable && !seg.note);
+  const [draft, setDraft] = useState(seg.note ?? "");
+
+  const buttonBase = "flex-1 rounded-xl py-2.5 text-sm font-medium";
+  const subtleStyle = { backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` };
+  const primaryStyle = { backgroundColor: colors.categorySelected, color: colors.categorySelectedText };
 
   return (
     <>
@@ -127,50 +142,89 @@ function NoteModal({ note, onClose, colors }: { note: ActiveNote | null; onClose
         onClick={onClose}
       />
       <div
-        className="fixed left-1/2 top-1/2 z-50 w-[85vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
+        className="fixed left-1/2 top-1/2 z-50 w-[88vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >
         <p className="text-lg font-semibold text-center" style={{ color: colors.textEmphasis }}>
-          {note.base}
+          {seg.content}
         </p>
-        {note.ruby.length > 0 && (
+        {seg.ruby && seg.ruby.length > 0 && (
           <p className="mt-1 text-xs text-center" style={{ color: colors.rubyText }}>
-            {note.ruby.join(" · ")}
+            {seg.ruby.join(" · ")}
           </p>
         )}
-        <div
-          className="mt-4 max-h-[50vh] overflow-y-auto text-sm"
-          style={{
-            color: colors.text,
-            lineHeight: "1.7",
-            whiteSpace: "pre-line",
-            wordBreak: "keep-all",
-            borderTop: `1px solid ${colors.border}`,
-            paddingTop: "1rem",
-          }}
-        >
-          {note.note}
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-5 w-full rounded-xl py-3 text-sm font-medium"
-          style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-        >닫기</button>
+
+        {isEditing ? (
+          <>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+              rows={5}
+              placeholder="이 단어에 대한 주석을 적어주세요"
+              className="mt-4 w-full rounded-xl p-3 text-sm resize-none outline-none"
+              style={{
+                backgroundColor: colors.bg,
+                color: colors.text,
+                border: `1px solid ${colors.border}`,
+                fontFamily: "inherit",
+                lineHeight: "1.6",
+              }}
+            />
+            <div className="mt-4 flex gap-2">
+              <button onClick={onClose} className={buttonBase} style={subtleStyle}>취소</button>
+              {seg.note && (
+                <button onClick={() => onSave("")} className={buttonBase} style={subtleStyle}>삭제</button>
+              )}
+              <button onClick={() => onSave(draft)} className={buttonBase} style={primaryStyle}>저장</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div
+              className="mt-4 max-h-[45vh] overflow-y-auto text-sm"
+              style={{
+                color: colors.text,
+                lineHeight: "1.7",
+                whiteSpace: "pre-line",
+                wordBreak: "keep-all",
+                borderTop: `1px solid ${colors.border}`,
+                paddingTop: "1rem",
+              }}
+            >
+              {seg.note}
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button onClick={onClose} className={buttonBase} style={subtleStyle}>닫기</button>
+              {editable && (
+                <button onClick={() => setIsEditing(true)} className={buttonBase} style={primaryStyle}>주석 수정</button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
 }
 
-export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) {
+export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: RubyTextProps) {
   const segments = parseRubyText(text);
-  const [activeNote, setActiveNote] = useState<ActiveNote | null>(null);
+  const [activeSeg, setActiveSeg] = useState<RubySegment | null>(null);
 
   // 명언이 바뀌면 열려 있던 주석 팝업은 닫기 (렌더 중 상태 조정 패턴)
   const [noteOwnerText, setNoteOwnerText] = useState(text);
   if (noteOwnerText !== text) {
     setNoteOwnerText(text);
-    setActiveNote(null);
+    setActiveSeg(null);
   }
+
+  const editable = Boolean(onTextChange);
+  const handleSave = (note: string) => {
+    if (!activeSeg || !onTextChange) return;
+    const next = withNote(text, activeSeg, note);
+    setActiveSeg(null);
+    if (next !== text) onTextChange(next);
+  };
 
   return (
     <>
@@ -186,9 +240,18 @@ export function RubyText({ text, fontSize, lineHeight, colors }: RubyTextProps) 
           overflowX: "hidden",
         }}
       >
-        {segments.map((seg, i) => renderSegment(seg, i, colors, false, setActiveNote))}
+        {segments.map((seg, i) => renderSegment(seg, i, colors, false, editable, setActiveSeg))}
       </p>
-      <NoteModal note={activeNote} onClose={() => setActiveNote(null)} colors={colors} />
+      {activeSeg && (
+        <NoteModal
+          key={`${activeSeg.braceStart}-${activeSeg.note ?? ""}`}
+          seg={activeSeg}
+          editable={editable}
+          onClose={() => setActiveSeg(null)}
+          onSave={handleSave}
+          colors={colors}
+        />
+      )}
     </>
   );
 }

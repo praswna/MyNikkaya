@@ -10,7 +10,8 @@ import { RubySegment } from "./types";
 //   링크:   https://...           → 자동 하이퍼링크 (40% 크기)
 //   줄바꿈: CSV 셀 안에서 엔터    → <br>
 
-function parseInner(text: string): RubySegment[] {
+// offset: 이 조각이 원문 전체에서 시작하는 위치 (주석 추가/수정 시 원문을 되짚기 위함)
+function parseInner(text: string, offset: number): RubySegment[] {
   const segments: RubySegment[] = [];
   const pattern = /\{([^}]+)\}|\n|(https?:\/\/[^\s]+)/g;
   let lastIndex = 0;
@@ -50,6 +51,9 @@ function parseInner(text: string): RubySegment[] {
       type: "ruby",
       content: word,
       ruby: rubyParts,
+      rubyRaw: topPart,
+      braceStart: offset + matchStart,
+      braceEnd: offset + matchStart + match[0].length,
       ...(notePart ? { note: notePart } : {}),
     });
 
@@ -76,11 +80,11 @@ export function parseRubyText(text: string): RubySegment[] {
     // bold 이전 텍스트는 일반 파싱
     if (matchStart > lastIndex) {
       const before = text.slice(lastIndex, matchStart);
-      segments.push(...parseInner(before));
+      segments.push(...parseInner(before, lastIndex));
     }
 
-    // bold 내부도 루비/링크/줄바꿈 파싱
-    const innerSegments = parseInner(match[1]);
+    // bold 내부도 루비/링크/줄바꿈 파싱 ("[[" 두 글자만큼 원문 위치를 밀어준다)
+    const innerSegments = parseInner(match[1], matchStart + 2);
     segments.push({
       type: "bold",
       content: match[1],
@@ -92,8 +96,23 @@ export function parseRubyText(text: string): RubySegment[] {
 
   // 나머지 텍스트
   if (lastIndex < text.length) {
-    segments.push(...parseInner(text.slice(lastIndex)));
+    segments.push(...parseInner(text.slice(lastIndex), lastIndex));
   }
 
   return segments;
+}
+
+// 주석 본문에 쓸 수 없는 문자 정리
+// "{" "}" 는 마크업 경계라서 넣으면 파싱이 깨진다.
+export function sanitizeNote(note: string): string {
+  return note.replace(/[{}]/g, "").trim();
+}
+
+// 루비 세그먼트의 주석을 새 값으로 바꾼 명언 원문을 만든다.
+// note 가 빈 문자열이면 주석을 지운다.
+export function withNote(text: string, seg: RubySegment, note: string): string {
+  if (seg.braceStart === undefined || seg.braceEnd === undefined) return text;
+  const clean = sanitizeNote(note);
+  const inner = clean ? `${seg.rubyRaw ?? ""}^${clean}` : (seg.rubyRaw ?? "");
+  return text.slice(0, seg.braceStart) + `{${inner}}` + text.slice(seg.braceEnd);
 }
