@@ -9,6 +9,7 @@ import { QRModal } from "@/components/QRModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
 import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
+import { SourceEditor } from "@/components/SourceEditor";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
 import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
@@ -384,26 +385,16 @@ export default function Home() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
           <div className="flex min-h-full items-center justify-center">
             {isEditing ? (
-              <textarea
-                ref={textareaRef}
+              // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
+              // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
+              <SourceEditor
                 value={editText}
-                onChange={(e) => { setEditText(e.target.value); fitEditHeight(); }}
-                spellCheck={false}
-                aria-label="명언 원문"
-                className="w-full resize-none overflow-hidden bg-transparent p-0 text-center font-semibold outline-none"
-                style={{
-                  fontSize: scaledFontSize,
-                  lineHeight: metrics.lineHeight,
-                  color: colors.text,
-                  caretColor: colors.textEmphasis,
-                  fontFamily: "inherit",
-                  wordBreak: "keep-all",
-                  border: "none",
-                  WebkitAppearance: "none",
-                  // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
-                  // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
-                  margin: `${EDIT_BUTTON_ZONE}px 0`,
-                }}
+                onChange={(next) => { setEditText(next); fitEditHeight(); }}
+                fontSize={scaledFontSize}
+                lineHeight={metrics.lineHeight}
+                colors={colors}
+                textareaRef={textareaRef}
+                marginY={EDIT_BUTTON_ZONE}
               />
             ) : (
               <RubyText

@@ -116,3 +116,88 @@ export function withNote(text: string, seg: RubySegment, note: string): string {
   const inner = clean ? `${seg.rubyRaw ?? ""}^${clean}` : (seg.rubyRaw ?? "");
   return text.slice(0, seg.braceStart) + `{${inner}}` + text.slice(seg.braceEnd);
 }
+
+// =============================================
+// 수정 중에 보이는 원문 색칠하기
+//
+// 읽을 때는 마크업이 사라지지만, 고칠 때는 원문이 그대로 보인다.
+// 이때도 루비·굵게·링크가 읽을 때와 같은 색으로 보이도록 글자를 조각낸다.
+// 조각을 순서대로 이으면 원문과 정확히 같아야 한다 (한 글자도 빠지면 커서가 어긋난다).
+// =============================================
+
+export type SourceTokenKind =
+  | "plain"  // 본문
+  | "base"   // 루비가 붙는 낱말
+  | "ruby"   // { } 안의 루비
+  | "note"   // { } 안에서 ^ 뒤의 주석
+  | "bold"   // [[ ]] 로 감싼 부분
+  | "link";  // http(s) 주소
+
+export interface SourceToken {
+  text: string;
+  kind: SourceTokenKind;
+}
+
+function pushToken(tokens: SourceToken[], text: string, kind: SourceTokenKind): void {
+  if (!text) return;
+  const last = tokens[tokens.length - 1];
+  // 같은 색끼리는 붙여서 조각 수를 줄인다
+  if (last && last.kind === kind) last.text += text;
+  else tokens.push({ text, kind });
+}
+
+// 굵게 구간 안팎을 같은 규칙으로 훑는다.
+// 굵게 구간 안에서는 본문과 루비 베이스가 모두 굵게 색을 쓴다 (읽기 화면과 같다).
+function tokenizeInner(text: string, plain: SourceTokenKind, tokens: SourceToken[]): void {
+  const pattern = /\{([^}]+)\}|(https?:\/\/[^\s]+)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const before = text.slice(lastIndex, match.index);
+
+    if (match[0].startsWith("http")) {
+      pushToken(tokens, before, plain);
+      pushToken(tokens, match[0], "link");
+      lastIndex = match.index + match[0].length;
+      continue;
+    }
+
+    // "{" 바로 앞에 붙어 있는 낱말이 루비가 얹히는 글자다
+    const wordMatch = before.match(/(\S+)$/);
+    const word = wordMatch ? wordMatch[1] : "";
+    pushToken(tokens, word ? before.slice(0, before.length - word.length) : before, plain);
+    pushToken(tokens, word, plain === "bold" ? "bold" : "base");
+
+    const inner = match[1];
+    const caret = inner.indexOf("^");
+    if (caret === -1) {
+      pushToken(tokens, match[0], "ruby");
+    } else {
+      pushToken(tokens, `{${inner.slice(0, caret)}`, "ruby");
+      pushToken(tokens, `${inner.slice(caret)}}`, "note");
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  pushToken(tokens, text.slice(lastIndex), plain);
+}
+
+export function highlightSource(text: string): SourceToken[] {
+  const tokens: SourceToken[] = [];
+  const boldPattern = /\[\[([^\]]+)\]\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldPattern.exec(text)) !== null) {
+    tokenizeInner(text.slice(lastIndex, match.index), "plain", tokens);
+    pushToken(tokens, "[[", "bold");
+    tokenizeInner(match[1], "bold", tokens);
+    pushToken(tokens, "]]", "bold");
+    lastIndex = match.index + match[0].length;
+  }
+  tokenizeInner(text.slice(lastIndex), "plain", tokens);
+
+  return tokens;
+}
