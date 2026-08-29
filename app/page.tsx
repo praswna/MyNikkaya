@@ -6,8 +6,7 @@ import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
-import { FontSizeModal } from "@/components/FontSizeModal";
-import { ContentWidthModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX } from "@/components/ContentWidthModal";
+import { SizeModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX } from "@/components/SizeModal";
 import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
@@ -50,8 +49,7 @@ export default function Home() {
   const [isMeditationOpen, setIsMeditationOpen] = useState(false);
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
-  const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
-  const [isContentWidthOpen, setIsContentWidthOpen] = useState(false);
+  const [isSizeOpen, setIsSizeOpen] = useState(false);
   const [isCanonMapOpen, setIsCanonMapOpen] = useState(false);
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [theme, setTheme] = useState<Theme>("dark");
@@ -363,157 +361,161 @@ export default function Home() {
         </div>
       </div>}
 
-      {/* 카테고리 */}
-      {categories.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain">
-          <button
-            onClick={() => handleCategorySelect(null)}
-            className="rounded-full border px-1.5 py-0.5 text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: selectedCategory === null ? colors.categorySelected : "transparent",
-              borderColor: selectedCategory === null ? colors.categorySelected : colors.categoryBorder,
-              color: selectedCategory === null ? colors.categorySelectedText : colors.categoryText,
-            }}
-          >전체</button>
-          {categories.map((cat) => (
+      {/* 화면이 넓은 PC 에서 양옆으로 퍼지지 않게, 카테고리·본문·버튼을 한 기둥에 담는다 */}
+      <div
+        className="mx-auto flex w-full min-h-0 flex-1 flex-col"
+        style={{ maxWidth: contentWidth >= CONTENT_WIDTH_MAX ? undefined : contentWidth }}
+      >
+        {/* 카테고리 */}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain">
             <button
-              key={cat}
-              onClick={() => handleCategorySelect(cat)}
+              onClick={() => handleCategorySelect(null)}
               className="rounded-full border px-1.5 py-0.5 text-xs font-medium transition-colors"
               style={{
-                backgroundColor: selectedCategory === cat ? colors.categorySelected : "transparent",
-                borderColor: selectedCategory === cat ? colors.categorySelected : colors.categoryBorder,
-                color: selectedCategory === cat ? colors.categorySelectedText : colors.categoryText,
+                backgroundColor: selectedCategory === null ? colors.categorySelected : "transparent",
+                borderColor: selectedCategory === null ? colors.categorySelected : colors.categoryBorder,
+                color: selectedCategory === null ? colors.categorySelectedText : colors.categoryText,
               }}
-            >{cat}</button>
-          ))}
-        </div>
-      )}
-
-      {/* 명언 영역 - 읽기와 수정이 같은 자리를 쓴다 */}
-      {/* 버튼은 스크롤 영역 밖에 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
-      <div className="relative flex min-h-0 flex-1">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
-          <div
-            className="mx-auto flex min-h-full w-full items-center justify-center"
-            style={{ maxWidth: contentWidth >= CONTENT_WIDTH_MAX ? undefined : contentWidth }}
-          >
-            {isEditing ? (
-              // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
-              // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
-              <SourceEditor
-                value={editText}
-                onChange={(next) => { setEditText(next); fitEditHeight(); }}
-                fontSize={scaledFontSize}
-                lineHeight={metrics.lineHeight}
-                colors={colors}
-                textareaRef={textareaRef}
-                marginY={EDIT_BUTTON_ZONE}
-              />
-            ) : (
-              <RubyText
-                text={currentQuote.text}
-                fontSize={scaledFontSize}
-                lineHeight={metrics.lineHeight}
-                colors={colors}
-                onTextChange={saveQuoteText}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* 수정 버튼 - 화면을 옮기지 않고 본문에서 바로 고친다 */}
-        <div className="absolute right-1 top-1 flex gap-1.5">
-          {isEditing ? (
-            <>
+            >전체</button>
+            {categories.map((cat) => (
               <button
-                onClick={handleEditCancel}
-                aria-label="수정 취소"
+                key={cat}
+                onClick={() => handleCategorySelect(cat)}
+                className="rounded-full border px-1.5 py-0.5 text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: selectedCategory === cat ? colors.categorySelected : "transparent",
+                  borderColor: selectedCategory === cat ? colors.categorySelected : colors.categoryBorder,
+                  color: selectedCategory === cat ? colors.categorySelectedText : colors.categoryText,
+                }}
+              >{cat}</button>
+            ))}
+          </div>
+        )}
+
+        {/* 명언 영역 - 읽기와 수정이 같은 자리를 쓴다 */}
+        {/* 버튼은 스크롤 영역 밖에 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
+        <div className="relative flex min-h-0 flex-1">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
+            <div className="flex min-h-full items-center justify-center">
+              {isEditing ? (
+                // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
+                // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
+                <SourceEditor
+                  value={editText}
+                  onChange={(next) => { setEditText(next); fitEditHeight(); }}
+                  fontSize={scaledFontSize}
+                  lineHeight={metrics.lineHeight}
+                  colors={colors}
+                  textareaRef={textareaRef}
+                  marginY={EDIT_BUTTON_ZONE}
+                />
+              ) : (
+                <RubyText
+                  text={currentQuote.text}
+                  fontSize={scaledFontSize}
+                  lineHeight={metrics.lineHeight}
+                  colors={colors}
+                  onTextChange={saveQuoteText}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* 수정 버튼 - 화면을 옮기지 않고 본문에서 바로 고친다 */}
+          <div className="absolute right-1 top-1 flex gap-1.5">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleEditCancel}
+                  aria-label="수정 취소"
+                  className={roundButton}
+                  style={{ backgroundColor: colors.buttonPrimary }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  aria-label="수정 완료"
+                  className={roundButton}
+                  style={{ backgroundColor: colors.categorySelected }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.categorySelectedText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleEditOpen}
+                aria-label="내용 수정"
                 className={roundButton}
                 style={{ backgroundColor: colors.buttonPrimary }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
                 </svg>
               </button>
-              <button
-                onClick={handleEditSave}
-                aria-label="수정 완료"
-                className={roundButton}
-                style={{ backgroundColor: colors.categorySelected }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.categorySelectedText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </button>
-            </>
-          ) : (
+            )}
+          </div>
+        </div>
+
+        {/* 하단 버튼 */}
+        <div
+          className="px-4 pt-3"
+          style={{
+            borderTop: `1px solid ${colors.border}`,
+            backgroundColor: colors.bg,
+            paddingBottom: "max(calc(env(safe-area-inset-bottom) - 2rem), 0px)",
+          }}
+        >
+          <div className="flex items-center justify-center gap-6">
             <button
-              onClick={handleEditOpen}
-              aria-label="내용 수정"
-              className={roundButton}
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="설정"
+              className="flex h-[52px] w-[52px] items-center justify-center rounded-full shadow-md transition-transform active:scale-95"
               style={{ backgroundColor: colors.buttonPrimary }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
             </button>
-          )}
-        </div>
-      </div>
 
-      {/* 하단 버튼 */}
-      <div
-        className="px-4 pt-3"
-        style={{
-          borderTop: `1px solid ${colors.border}`,
-          backgroundColor: colors.bg,
-          paddingBottom: "max(calc(env(safe-area-inset-bottom) - 2rem), 0px)",
-        }}
-      >
-        <div className="flex items-center justify-center gap-6">
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            aria-label="설정"
-            className="flex h-[52px] w-[52px] items-center justify-center rounded-full shadow-md transition-transform active:scale-95"
-            style={{ backgroundColor: colors.buttonPrimary }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-
-          <button
-            onClick={handleNewQuote}
-            aria-label="새 명언 보기"
-            className="flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
-            style={{ backgroundColor: colors.buttonPrimary }}
-          >
-            <DharmaWheel size={34} color={colors.buttonIcon} rotate={wheelRotate} />
-          </button>
-
-          <button
-            onClick={handleSync}
-            disabled={isSyncing}
-            aria-label="Google Sheets 동기화"
-            className="flex h-[52px] w-[52px] items-center justify-center rounded-full shadow-md transition-transform active:scale-95 disabled:opacity-50"
-            style={{ backgroundColor: colors.buttonPrimary }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ animation: isSyncing ? "spin-sync 0.8s linear infinite" : "none", transformOrigin: "center" }}
+            <button
+              onClick={handleNewQuote}
+              aria-label="새 명언 보기"
+              className="flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
+              style={{ backgroundColor: colors.buttonPrimary }}
             >
-              <style>{`@keyframes spin-sync { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-          </button>
+              <DharmaWheel size={34} color={colors.buttonIcon} rotate={wheelRotate} />
+            </button>
+
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              aria-label="Google Sheets 동기화"
+              className="flex h-[52px] w-[52px] items-center justify-center rounded-full shadow-md transition-transform active:scale-95 disabled:opacity-50"
+              style={{ backgroundColor: colors.buttonPrimary }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ animation: isSyncing ? "spin-sync 0.8s linear infinite" : "none", transformOrigin: "center" }}
+              >
+                <style>{`@keyframes spin-sync { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+
       {syncStatus && (
         <p
           className="fixed text-center text-xs"
@@ -534,8 +536,7 @@ export default function Home() {
         onThemeToggle={handleThemeToggle}
         fontScale={fontScale}
         contentWidth={contentWidth}
-        onFontSizeOpen={() => { setIsFontSizeOpen(true); setIsSettingsOpen(false); }}
-        onContentWidthOpen={() => { setIsContentWidthOpen(true); setIsSettingsOpen(false); }}
+        onSizeOpen={() => { setIsSizeOpen(true); setIsSettingsOpen(false); }}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
@@ -555,16 +556,11 @@ export default function Home() {
         onClose={() => setIsPromptOpen(false)}
         colors={colors}
       />
-      <FontSizeModal
-        isOpen={isFontSizeOpen}
-        onClose={() => setIsFontSizeOpen(false)}
+      <SizeModal
+        isOpen={isSizeOpen}
+        onClose={() => setIsSizeOpen(false)}
         fontScale={fontScale}
         onFontScaleChange={handleFontScaleChange}
-        colors={colors}
-      />
-      <ContentWidthModal
-        isOpen={isContentWidthOpen}
-        onClose={() => setIsContentWidthOpen(false)}
         contentWidth={contentWidth}
         onContentWidthChange={handleContentWidthChange}
         colors={colors}
