@@ -1,171 +1,48 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { ThemeColors } from "@/lib/theme";
+import { useBell, bellSrc, formatTime } from "@/lib/use-bell";
 
 interface MeditationModalProps {
-  isOpen: boolean;
   onClose: () => void;
   colors: ThemeColors;
-  duration?: number;
+  duration: number;
 }
 
-function formatTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+// 수행 종 화면.
+//
+// 부모(page.tsx)가 열 때만 이 컴포넌트를 만든다 (isOpen 을 안에서 보지 않는다).
+// 그래야 열 때마다 상태가 새로 시작하고, 부모가 다시 그려져도 수행이 끊기지 않는다.
+export function MeditationModal({ onClose, colors, duration }: MeditationModalProps) {
+  const { phase, prepCountdown, remaining, progress, error, start, stop, retry } = useBell(onClose);
+  const startedRef = useRef(false);
 
-// 수행 시간별 오디오 파일 매핑 (public/ 폴더의 mp3 파일)
-function getAudioSrc(duration: number): string {
-  if (duration <= 15 * 60) return "/bell_15m.mp3"; // 15분
-  if (duration <= 30 * 60) return "/bell_30m.mp3"; // 30분
-  return "/bell_1h.mp3";                           // 1시간
-}
-
-const PREP_SECONDS = 5;
-
-export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: MeditationModalProps) {
-  const [phase, setPhase] = useState<"prep" | "meditating">("prep");
-  const [prepCountdown, setPrepCountdown] = useState(PREP_SECONDS);
-  const [remaining, setRemaining] = useState(duration);
-  const [progress, setProgress] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const prepIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const audioReadyRef = useRef(false);
-
-  const cleanupAudio = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (prepIntervalRef.current) {
-      clearInterval(prepIntervalRef.current);
-      prepIntervalRef.current = null;
-    }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current.load();
-      audioRef.current = null;
-    }
-    if ("mediaSession" in navigator) {
-      try {
-        navigator.mediaSession.metadata = null;
-        navigator.mediaSession.playbackState = "none";
-      } catch {}
-    }
-    audioReadyRef.current = false;
-  }, []);
-
-  const handleStop = useCallback(() => {
-    cleanupAudio();
-    setPhase("prep");
-    setPrepCountdown(PREP_SECONDS);
-    setRemaining(duration);
-    setProgress(0);
-    onClose();
-  }, [cleanupAudio, onClose, duration]);
-
-  const startMeditation = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.play().then(() => {
-      setPhase("meditating");
-      startTimeRef.current = Date.now();
-
-      if ("mediaSession" in navigator) {
-        try {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: "수행",
-            artist: "불교 경전",
-          });
-          navigator.mediaSession.playbackState = "playing";
-        } catch {}
-      }
-
-      intervalRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        const left = Math.max(0, duration - elapsed);
-        setRemaining(left);
-        if (left <= 0) {
-          handleStop();
-        }
-      }, 250);
-    }).catch((e) => console.error("재생 실패:", e));
-  }, [duration, handleStop]);
-
+  // 화면이 열리면 곧바로 준비를 시작한다 (한 번만)
   useEffect(() => {
-    if (!isOpen) {
-      cleanupAudio();
-      return;
-    }
+    if (startedRef.current) return;
+    startedRef.current = true;
+    start(duration, bellSrc(duration));
+  }, [duration, start]);
 
-    // 오디오 다운로드 시작
-    const src = getAudioSrc(duration);
-    const audio = new Audio(src);
-    audio.preload = "auto";
-    audio.volume = 1.0; // 볼륨 (0.0 ~ 1.0)
-    audioRef.current = audio;
+  const handleStop = () => {
+    stop();
+    onClose();
+  };
 
-    const handleProgress = () => {
-      if (audio.buffered.length > 0) {
-        const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-        const total = audio.duration || duration;
-        setProgress(Math.round((bufferedEnd / total) * 100));
-      }
-    };
-
-    const handleCanPlayThrough = () => {
-      setProgress(100);
-      audioReadyRef.current = true;
-    };
-
-    audio.addEventListener("progress", handleProgress);
-    audio.addEventListener("canplaythrough", handleCanPlayThrough);
-
-    // 5초 prep 카운트다운 시작
-    let count = PREP_SECONDS;
-    setPrepCountdown(count);
-    prepIntervalRef.current = setInterval(() => {
-      count -= 1;
-      setPrepCountdown(count);
-      if (count <= 0) {
-        if (prepIntervalRef.current) {
-          clearInterval(prepIntervalRef.current);
-          prepIntervalRef.current = null;
-        }
-        // 오디오 준비됐으면 바로 시작, 아니면 대기
-        if (audioReadyRef.current) {
-          startMeditation();
-        } else {
-          // 다운로드 완료 시 자동 시작
-          const waitForReady = setInterval(() => {
-            if (audioReadyRef.current) {
-              clearInterval(waitForReady);
-              startMeditation();
-            }
-          }, 200);
-        }
-      }
-    }, 1000);
-
-    return () => {
-      audio.removeEventListener("progress", handleProgress);
-      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
-      cleanupAudio();
-    };
-  }, [isOpen, duration, cleanupAudio, startMeditation]);
-
-  if (!isOpen) return null;
+  const buttonStyle = {
+    backgroundColor: colors.buttonPrimary,
+    color: colors.buttonIcon,
+    border: `1px solid ${colors.border}`,
+  };
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
       style={{ backgroundColor: colors.bg }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="수행"
     >
       {phase === "prep" && (
         <>
@@ -173,7 +50,7 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
           <p className="mb-6 text-sm" style={{ color: colors.textMuted }}>
             {progress < 100 ? `준비 중 ${progress}%` : "준비 완료"}
           </p>
-          <p className="text-6xl font-light" style={{ color: colors.text }}>{prepCountdown}</p>
+          <p className="text-6xl font-light" style={{ color: colors.text }}>{Math.max(prepCountdown, 0)}</p>
         </>
       )}
 
@@ -186,16 +63,26 @@ export function MeditationModal({ isOpen, onClose, colors, duration = 3600 }: Me
         </>
       )}
 
+      {/* 예전에는 소리가 안 나오면 카운트다운이 0 에 멈춘 채 아무 말이 없었다 */}
+      {phase === "failed" && (
+        <>
+          <p className="mb-6 text-center text-base" style={{ color: colors.text }}>{error}</p>
+          <button
+            onClick={retry}
+            className="rounded-full px-6 py-2 text-sm font-medium"
+            style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+          >
+            다시 시작
+          </button>
+        </>
+      )}
+
       <button
         onClick={handleStop}
         className="mt-12 rounded-full px-6 py-2 text-sm font-medium transition-colors"
-        style={{
-          backgroundColor: colors.buttonPrimary,
-          color: colors.buttonIcon,
-          border: `1px solid ${colors.border}`,
-        }}
+        style={buttonStyle}
       >
-        중지
+        {phase === "failed" ? "닫기" : "중지"}
       </button>
     </div>
   );

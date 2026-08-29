@@ -577,12 +577,15 @@ export default function Home() {
         onClose={() => setIsQROpen(false)}
         colors={colors}
       />
-      <MeditationModal
-        isOpen={isMeditationOpen}
-        onClose={() => setIsMeditationOpen(false)}
-        colors={colors}
-        duration={meditationDuration}
-      />
+      {/* 열 때마다 새로 만든다 - 그래야 수행 상태가 깨끗하게 시작하고,
+          이 화면이 다시 그려져도 수행이 처음부터 되돌아가지 않는다 */}
+      {isMeditationOpen && (
+        <MeditationModal
+          onClose={() => setIsMeditationOpen(false)}
+          colors={colors}
+          duration={meditationDuration}
+        />
+      )}
       <EditPasswordModal
         isOpen={pendingSave !== null}
         wasRejected={passwordWasRejected}
