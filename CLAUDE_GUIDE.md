@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 - **이름**: MyNikkaya (불교 경전 웹앱)
-- **기술 스택**: Next.js 15 + TypeScript + Tailwind CSS
+- **기술 스택**: Next.js 16 + React 19 + TypeScript + Tailwind CSS 4
 - **배포**: Vercel (GitHub 연동 자동 배포)
 - **저장소**: https://github.com/praswna/MyNikkaya
 
@@ -35,9 +35,11 @@ buddhist-quotes/
 ├── components/
 │   ├── RubyText.tsx          # 명언 텍스트 + 루비/굵게/링크 렌더링
 │   ├── DharmaWheel.tsx       # 법륜 SVG 컴포넌트
-│   ├── SplashScreen.tsx      # 앱 시작 스플래시
 │   ├── SettingsModal.tsx     # 설정 팝업 (테마/글자크기/수행)
-│   ├── MeditationModal.tsx   # 수행(명상) 종 타이머
+│   ├── MeditationModal.tsx   # 수행(명상) 종 화면
+│   ├── SourceEditor.tsx      # 본문 자리에서 원문 고치기 (색칠 + 입력칸 겹치기)
+│   ├── CanonMapModal.tsx     # 불교 경전 맵
+│   ├── PromptModal.tsx       # 번역 프롬프트
 │   ├── QRModal.tsx           # QR 코드 표시
 │   └── EditPasswordModal.tsx # 시트 저장 암호 묻기
 ├── lib/
@@ -46,7 +48,13 @@ buddhist-quotes/
 │   ├── csv.ts                # CSV 파싱
 │   ├── loader.ts             # 명언 데이터 로더 (localStorage + Google Sheets)
 │   ├── theme.ts              # 다크/라이트 테마 색상
+│   ├── settings.ts           # 테마·크기 설정 (localStorage, useSyncExternalStore)
 │   ├── edit-key.ts           # 편집 암호 보관 (localStorage)
+│   ├── edit-position.ts      # 읽기↔수정 전환 때 위치 맞추기
+│   ├── read-position.ts      # 명언마다 읽던 자리 기억
+│   ├── use-bell.ts           # 수행 종 재생 (설정 팝업과 /bell 이 함께 쓴다)
+│   ├── use-escape.ts         # 팝업을 Esc 로 닫기
+│   ├── canon.ts              # 삼장 구조 + 경 번호 파싱
 │   └── text-size.ts          # 텍스트 길이별 폰트 크기
 ├── public/
 │   ├── quotes_export.csv     # 명언 데이터 (Google Sheets 자동 동기화)
@@ -136,6 +144,8 @@ CSV 셀 안에서 그냥 엔터 (Alt+Enter) → 화면에서도 줄바꿈
    - ✓ 저장 / ✕ 취소, 설정의 `내용 수정`도 같은 동작
    - 수정 중 새 명언·카테고리·동기화를 누르면 고친 내용은 자동 저장된다
 4. **수행(명상) 타이머**: 15/30/1시간 통짜 mp3 재생 (백그라운드 안정)
+   - 재생 로직은 `lib/use-bell.ts` 한 곳에 있다 (설정 팝업과 `/bell` 페이지가 같이 쓴다)
+   - 소리가 막히거나 끝내 안 받아지면(30초) 안내와 `다시 시작` 버튼이 뜬다
 5. **테마 전환**: 다크/라이트, localStorage 저장
 6. **크기 조절** (설정 > 크기 조절, 한 창에 슬라이더 두 개, localStorage 저장)
    - **글자 크기**: 70~250%
@@ -143,6 +153,21 @@ CSV 셀 안에서 그냥 엔터 (Alt+Enter) → 화면에서도 줄바꿈
      화면 전체를 가운데 기둥으로 좁힌다 (기본 720px, 맨 오른쪽은 제한 없음)
    - 두 슬라이더 모두 움직이는 즉시 화면에 반영된다
 7. **Google Sheets 동기화**: 매일 자동 + 수동 동기화 버튼
+8. **읽던 자리 기억**: 긴 경을 보다 나가도 다음에 그 자리에서 이어 읽는다
+   (본문으로 이름표를 만들어 최근 30개, `lib/read-position.ts`)
+
+## 명언 데이터가 흐르는 길
+
+```
+구글 시트 ──매일──> public/quotes_export.csv ──처음 열 때──> 화면
+    └──동기화 버튼──> /api/quotes ──> localStorage(quotes_cache) ──> 화면
+```
+
+- 캐시가 있으면 그것으로 먼저 띄우고, **저장소 CSV 와 명언 개수가 다르면**
+  (=늘거나 줄었다) 뒤에서 갈아끼운다. 개수가 같으면 건드리지 않으므로
+  내가 고친 본문이 되돌아가지 않는다.
+- 본문을 고치면 메모리·경전 맵·캐시를 한 번에 맞추고 시트로 보낸다.
+  찾는 기준은 시트에 쓸 때와 같은 **본문 전체 일치**다.
 
 ## 구글 시트 (여러 탭)
 
@@ -230,7 +255,11 @@ git push origin main
 4. **iOS PWA 제약**: 
    - 상태바 색상 제한적 (default/black/black-translucent만)
    - 백그라운드 오디오 제한 → 통짜 mp3로 해결
-5. **루비 줄바꿈**: 크롬은 `<rt>` 안의 줄바꿈(`\n` + `pre-line`, `<br>`, 블록 자식)을 전부
+5. **긴 경 수정**: 대열반경은 4만 자에 색칠 조각이 2,500개다. 글자 하나에 화면
+   전체를 다시 그리면 타자가 밀린다. 그래서 (1) 고치는 중인 글은 `SourceEditor`
+   안에만 두고 (2) 색칠은 줄 단위로 memo 를 걸며 (3) 높이는 뒤에 깔린 글이 정한다
+   (재지 않는다). 이 구조를 건드릴 때는 긴 경으로 타자 속도를 꼭 재 볼 것
+6. **루비 줄바꿈**: 크롬은 `<rt>` 안의 줄바꿈(`\n` + `pre-line`, `<br>`, 블록 자식)을 전부
    무시하고 한 줄로 붙인다. 조각마다 `<span>`을 만들고 `display:inline-flex` + `flex-direction:column`
    상자로 감싸야 크롬에서도 줄이 나뉜다 (사파리는 두 방식 다 잘 나뉨)
 
