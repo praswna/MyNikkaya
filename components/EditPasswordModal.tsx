@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 
 interface EditPasswordModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface EditPasswordModalProps {
 // 암호를 넣으면 하려던 저장을 이어서 다시 시도한다.
 export function EditPasswordModal({ isOpen, wasRejected, onSubmit, onCancel, colors }: EditPasswordModalProps) {
   const [password, setPassword] = useState("");
+  useEscape(isOpen, onCancel);
 
   if (!isOpen) return null;
 
@@ -37,6 +39,9 @@ export function EditPasswordModal({ isOpen, wasRejected, onSubmit, onCancel, col
     <>
       <div className="fixed inset-0 z-40" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={cancel} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="편집 암호"
         className="fixed left-1/2 top-1/2 z-50 w-[88vw] max-w-xs -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >

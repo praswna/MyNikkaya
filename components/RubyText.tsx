@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { parseRubyText, splitNoteBlock, withNote } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 import { RubySegment } from "@/lib/types";
 
 interface RubyTextProps {
@@ -136,6 +137,7 @@ function NoteModal({
   // 주석이 없는 단어를 누른 경우엔 바로 입력 화면으로 연다
   const [isEditing, setIsEditing] = useState(editable && !seg.note);
   const [draft, setDraft] = useState(seg.note ?? "");
+  useEscape(true, onClose);
 
   const buttonBase = "flex-1 rounded-xl py-2.5 text-sm font-medium";
   const subtleStyle = { backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` };
@@ -149,6 +151,9 @@ function NoteModal({
         onClick={onClose}
       />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${seg.content} 주석`}
         className="fixed left-1/2 top-1/2 z-50 w-[88vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >

@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { DharmaWheel } from "@/components/DharmaWheel";
 import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
-import { SizeModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX } from "@/components/SizeModal";
+import { SizeModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX, CONTENT_WIDTH_MIN } from "@/components/SizeModal";
 import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
@@ -16,6 +16,8 @@ import { loadEditPassword, saveEditPassword } from "@/lib/edit-key";
 import { getTextMetrics } from "@/lib/text-size";
 import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
 import { THEMES, type Theme } from "@/lib/theme";
+import { useStoredSetting } from "@/lib/settings";
+import { loadReadPosition, saveReadPosition } from "@/lib/read-position";
 import type { Quote } from "@/lib/types";
 
 // =============================================
@@ -26,6 +28,15 @@ const STORAGE_KEY_FONT_SCALE = "app_font_scale"; // 글자 크기 localStorage �
 const STORAGE_KEY_CONTENT_WIDTH = "app_content_width"; // 본문 가로 크기 localStorage 키
 const EDIT_BUTTON_ZONE = 44;                     // 본문 오른쪽 위 수정 버튼이 차지하는 높이(px)
 
+
+// 화면을 그리기 직전에 자리를 맞춰야 튀지 않는다. 서버에서 그릴 때는 useEffect 로 둔다.
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+// 저장된 값이 비었거나 망가졌을 때를 대비한다
+function clamp(value: number, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(Math.max(value, min), max);
+}
 
 function pickRandom(quotes: Quote[], category: string | null, excludeId?: string): Quote | null {
   let pool = category ? quotes.filter((q) => q.category === category) : quotes;
@@ -40,7 +51,7 @@ export default function Home() {
   const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isEditSyncing, setIsEditSyncing] = useState(false);
+  const isEditSyncingRef = useRef(false); // 시트에 저장 중인가 (안내문을 지울지 판단용)
   const [pendingSave, setPendingSave] = useState<{ oldText: string; newText: string } | null>(null);
   const [passwordWasRejected, setPasswordWasRejected] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
@@ -52,9 +63,13 @@ export default function Home() {
   const [isSizeOpen, setIsSizeOpen] = useState(false);
   const [isCanonMapOpen, setIsCanonMapOpen] = useState(false);
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [fontScale, setFontScale] = useState(1.0);
-  const [contentWidth, setContentWidth] = useState(CONTENT_WIDTH_DEFAULT);
+  const [theme, setTheme] = useStoredSetting<Theme>(
+    STORAGE_KEY_THEME, "dark", (raw) => (raw === "light" ? "light" : "dark"));
+  const [fontScale, setFontScale] = useStoredSetting(
+    STORAGE_KEY_FONT_SCALE, 1, (raw) => clamp(parseFloat(raw), 0.7, 2.5, 1));
+  const [contentWidth, setContentWidth] = useStoredSetting(
+    STORAGE_KEY_CONTENT_WIDTH, CONTENT_WIDTH_DEFAULT,
+    (raw) => clamp(parseInt(raw, 10), CONTENT_WIDTH_MIN, CONTENT_WIDTH_MAX, CONTENT_WIDTH_DEFAULT));
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
@@ -64,6 +79,7 @@ export default function Home() {
   const editTextRef = useRef("");
   const quotesRef = useRef<Quote[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const readPositionRef = useRef<{ text: string; top: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const colors = THEMES[theme];
@@ -89,17 +105,6 @@ export default function Home() {
     document.documentElement.style.backgroundColor = colors.bg;
     document.body.style.backgroundColor = colors.bg;
   }, [colors.bg]);
-
-  useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem(STORAGE_KEY_THEME) as Theme | null;
-      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
-      const savedScale = localStorage.getItem(STORAGE_KEY_FONT_SCALE);
-      if (savedScale) setFontScale(parseFloat(savedScale));
-      const savedWidth = localStorage.getItem(STORAGE_KEY_CONTENT_WIDTH);
-      if (savedWidth) setContentWidth(parseInt(savedWidth, 10));
-    } catch {}
-  }, []);
 
   // 명언 목록을 한 곳에서 갈아끼운다 (메모리·화면·카테고리를 함께 맞춘다)
   const setQuoteList = useCallback((quotes: Quote[]) => {
@@ -143,7 +148,7 @@ export default function Home() {
 
   // 시트에 저장. 서버가 암호를 요구하면(401) 하려던 저장을 담아 두고 암호를 묻는다.
   const syncToSheet = useCallback(async (oldText: string, newText: string) => {
-    setIsEditSyncing(true);
+    isEditSyncingRef.current = true;
     setSyncStatus("동기화 중...");
     try {
       const res = await fetch("/api/sync-sheet", {
@@ -164,7 +169,7 @@ export default function Home() {
     } catch {
       setSyncStatus("동기화 실패");
     } finally {
-      setIsEditSyncing(false);
+      isEditSyncingRef.current = false;
     }
     setTimeout(() => setSyncStatus(null), 2000);
   }, []);
@@ -222,15 +227,13 @@ export default function Home() {
     setIsCanonMapOpen(false);
     commitEdit();
     setCurrentQuote(quote);
-    scrollRef.current?.scrollTo({ top: 0 });
   }, [commitEdit]);
 
   const handleNewQuote = useCallback(() => {
     commitEdit();
     setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
-    scrollRef.current?.scrollTo({ top: 0 });
     setWheelRotate((prev) => prev + 45);
-    setIsEditSyncing((syncing) => { if (!syncing) setSyncStatus(null); return syncing; });
+    if (!isEditSyncingRef.current) setSyncStatus(null);
   }, [selectedCategory, commitEdit]);
 
   const handleSync = useCallback(async () => {
@@ -260,26 +263,11 @@ export default function Home() {
     const next = cat === selectedCategory ? null : cat;
     setSelectedCategory(next);
     setCurrentQuote(pickRandom(quotesRef.current, next));
-    scrollRef.current?.scrollTo({ top: 0 });
   }, [selectedCategory, commitEdit]);
 
   const handleThemeToggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      try { localStorage.setItem(STORAGE_KEY_THEME, next); } catch {}
-      return next;
-    });
-  }, []);
-
-  const handleFontScaleChange = useCallback((scale: number) => {
-    setFontScale(scale);
-    try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
-  }, []);
-
-  const handleContentWidthChange = useCallback((width: number) => {
-    setContentWidth(width);
-    try { localStorage.setItem(STORAGE_KEY_CONTENT_WIDTH, String(width)); } catch {}
-  }, []);
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   const handleEditChange = useCallback((next: string) => { editTextRef.current = next; }, []);
 
@@ -291,6 +279,37 @@ export default function Home() {
     setEditAnchor(findEditAnchor(scrollRef.current, currentQuote.text));
     setIsEditing(true);
   }, [currentQuote, isEditing]);
+
+  // 긴 경은 한 번에 다 못 읽는다. 명언이 바뀌면 지난번에 읽던 자리로 되돌리고,
+  // 떠날 때 지금 자리를 적어 둔다. (그릴 때 바로 맞춰야 화면이 튀지 않는다)
+  useBrowserLayoutEffect(() => {
+    const el = scrollRef.current;
+    const text = currentQuote?.text;
+    if (!el || !text || isEditing) return;
+    el.scrollTop = loadReadPosition(text);
+    readPositionRef.current = { text, top: el.scrollTop };
+    return () => {
+      const last = readPositionRef.current;
+      if (last) saveReadPosition(last.text, last.top);
+    };
+  }, [currentQuote?.text, isEditing]);
+
+  // 스크롤할 때마다 자리를 적어 둔다 (localStorage 쓰기는 떠날 때 한 번)
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el || !currentQuote || isEditing) return;
+    readPositionRef.current = { text: currentQuote.text, top: el.scrollTop };
+  }, [currentQuote, isEditing]);
+
+  // 앱을 덮거나 새로고침할 때도 적어 둔다
+  useEffect(() => {
+    const flush = () => {
+      const last = readPositionRef.current;
+      if (last) saveReadPosition(last.text, last.top);
+    };
+    window.addEventListener("pagehide", flush);
+    return () => { window.removeEventListener("pagehide", flush); flush(); };
+  }, []);
 
   // 수정으로 바뀌는 순간, 읽던 줄이 있던 자리로 본문을 맞춘다
   useEffect(() => {
@@ -375,7 +394,21 @@ export default function Home() {
       >
         {/* 카테고리 */}
         {categories.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain">
+          <div
+            className="flex flex-wrap justify-center gap-0.5 px-1 pt-1 pb-0.5 max-h-20 overflow-y-auto overscroll-contain"
+            style={{
+              // 카테고리가 많으면 아래 줄이 반쯤 잘린 채 멈춰 고장난 것처럼 보였다.
+              // 아래에 옅은 그늘을 둬서 '더 있다'는 것을 알린다.
+              // local 층이 내용과 같이 움직이며 끝에 닿으면 그늘을 덮으므로,
+              // 넘칠 때만 보인다 (넘치지 않으면 아예 나타나지 않는다).
+              backgroundImage: `linear-gradient(to top, ${colors.bg}, transparent),`
+                + " radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.22), transparent)",
+              backgroundPosition: "bottom, bottom",
+              backgroundSize: "100% 10px, 100% 6px",
+              backgroundRepeat: "no-repeat",
+              backgroundAttachment: "local, scroll",
+            }}
+          >
             <button
               onClick={() => handleCategorySelect(null)}
               className="rounded-full border px-1.5 py-0.5 text-xs font-medium transition-colors"
@@ -403,7 +436,7 @@ export default function Home() {
         {/* 명언 영역 - 읽기와 수정이 같은 자리를 쓴다 */}
         {/* 버튼은 스크롤 영역 밖에 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
         <div className="relative flex min-h-0 flex-1">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
+          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
             <div className="flex min-h-full items-center justify-center">
               {isEditing ? (
                 // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
@@ -567,9 +600,9 @@ export default function Home() {
         isOpen={isSizeOpen}
         onClose={() => setIsSizeOpen(false)}
         fontScale={fontScale}
-        onFontScaleChange={handleFontScaleChange}
+        onFontScaleChange={setFontScale}
         contentWidth={contentWidth}
-        onContentWidthChange={handleContentWidthChange}
+        onContentWidthChange={setContentWidth}
         colors={colors}
       />
       <QRModal

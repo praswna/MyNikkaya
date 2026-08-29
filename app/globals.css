@@ -6,7 +6,18 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overscroll-behavior: none;
   overflow: hidden;
+}
+
+/* 바탕색은 테마를 따른다. html 에 붙는 data-theme 는 화면을 그리기 전에
+   layout.tsx 의 작은 스크립트가 넣어 준다 (어두운 화면이 번쩍이지 않게). */
+html {
   background-color: #2e2b28;
+}
+html[data-theme="light"] {
+  background-color: #e5ded4;
+}
+body {
+  background-color: inherit;
 }
 
 /* 루비 텍스트 스타일 */
