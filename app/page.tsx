@@ -7,6 +7,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { MeditationModal } from "@/components/MeditationModal";
 import { QRModal } from "@/components/QRModal";
 import { FontSizeModal } from "@/components/FontSizeModal";
+import { ContentWidthModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX } from "@/components/ContentWidthModal";
 import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
@@ -21,6 +22,7 @@ import type { Quote } from "@/lib/types";
 // =============================================
 const STORAGE_KEY_THEME = "app_theme";           // 테마 localStorage 키
 const STORAGE_KEY_FONT_SCALE = "app_font_scale"; // 글자 크기 localStorage 키
+const STORAGE_KEY_CONTENT_WIDTH = "app_content_width"; // 본문 가로 크기 localStorage 키
 const EDIT_BUTTON_ZONE = 44;                     // 본문 오른쪽 위 수정 버튼이 차지하는 높이(px)
 
 // Google Apps Script 배포 URL (시트 동기화용)
@@ -49,10 +51,12 @@ export default function Home() {
   const [meditationDuration, setMeditationDuration] = useState(3600);
   const [isQROpen, setIsQROpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const [isContentWidthOpen, setIsContentWidthOpen] = useState(false);
   const [isCanonMapOpen, setIsCanonMapOpen] = useState(false);
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [theme, setTheme] = useState<Theme>("dark");
   const [fontScale, setFontScale] = useState(1.0);
+  const [contentWidth, setContentWidth] = useState(CONTENT_WIDTH_DEFAULT);
   const [wheelRotate, setWheelRotate] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [splashFading, setSplashFading] = useState(false);
@@ -93,6 +97,8 @@ export default function Home() {
       if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
       const savedScale = localStorage.getItem(STORAGE_KEY_FONT_SCALE);
       if (savedScale) setFontScale(parseFloat(savedScale));
+      const savedWidth = localStorage.getItem(STORAGE_KEY_CONTENT_WIDTH);
+      if (savedWidth) setContentWidth(parseInt(savedWidth, 10));
     } catch {}
   }, []);
 
@@ -232,6 +238,11 @@ export default function Home() {
   const handleFontScaleChange = useCallback((scale: number) => {
     setFontScale(scale);
     try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
+  }, []);
+
+  const handleContentWidthChange = useCallback((width: number) => {
+    setContentWidth(width);
+    try { localStorage.setItem(STORAGE_KEY_CONTENT_WIDTH, String(width)); } catch {}
   }, []);
 
   // 시트 동기화 (현재 명언)
@@ -383,7 +394,10 @@ export default function Home() {
       {/* 버튼은 스크롤 영역 밖에 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
       <div className="relative flex min-h-0 flex-1">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
-          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="mx-auto flex min-h-full w-full items-center justify-center"
+            style={{ maxWidth: contentWidth >= CONTENT_WIDTH_MAX ? undefined : contentWidth }}
+          >
             {isEditing ? (
               // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
               // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
@@ -519,7 +533,9 @@ export default function Home() {
         theme={theme}
         onThemeToggle={handleThemeToggle}
         fontScale={fontScale}
+        contentWidth={contentWidth}
         onFontSizeOpen={() => { setIsFontSizeOpen(true); setIsSettingsOpen(false); }}
+        onContentWidthOpen={() => { setIsContentWidthOpen(true); setIsSettingsOpen(false); }}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
@@ -544,6 +560,13 @@ export default function Home() {
         onClose={() => setIsFontSizeOpen(false)}
         fontScale={fontScale}
         onFontScaleChange={handleFontScaleChange}
+        colors={colors}
+      />
+      <ContentWidthModal
+        isOpen={isContentWidthOpen}
+        onClose={() => setIsContentWidthOpen(false)}
+        contentWidth={contentWidth}
+        onContentWidthChange={handleContentWidthChange}
         colors={colors}
       />
       <QRModal

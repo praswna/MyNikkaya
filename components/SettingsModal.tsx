@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Theme, ThemeColors } from "@/lib/theme";
+import { formatContentWidth } from "./ContentWidthModal";
 
 interface Link {
   name: string;
@@ -15,6 +16,8 @@ interface SettingsModalProps {
   onThemeToggle: () => void;
   fontScale: number;
   onFontSizeOpen: () => void;
+  contentWidth: number;
+  onContentWidthOpen: () => void;
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   onEditOpen: () => void;
@@ -43,6 +46,13 @@ const Icons = {
   moon: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  ),
+  width: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="8 7 3 12 8 17" />
+      <polyline points="16 7 21 12 16 17" />
+      <line x1="3" y1="12" x2="21" y2="12" />
     </svg>
   ),
   text: (color: string) => (
@@ -98,8 +108,8 @@ const Icons = {
 };
 
 export function SettingsModal({
-  isOpen, onClose, theme, onThemeToggle, fontScale,
-  onFontSizeOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
+  isOpen, onClose, theme, onThemeToggle, fontScale, contentWidth,
+  onFontSizeOpen, onContentWidthOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEffect(() => {
@@ -154,6 +164,19 @@ export function SettingsModal({
             <span>글자 크기</span>
           </div>
           <span style={{ color: colors.textMuted }}>{Math.round(fontScale * 100)}% ›</span>
+        </button>
+
+        {/* 가로 크기 - 화면이 넓은 PC 에서 글줄이 너무 길어지지 않게 */}
+        <button
+          onClick={() => { onContentWidthOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center justify-between px-3"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          <div className="flex items-center gap-2">
+            {Icons.width(colors.text)}
+            <span>가로 크기</span>
+          </div>
+          <span style={{ color: colors.textMuted }}>{formatContentWidth(contentWidth)} ›</span>
         </button>
 
         {/* 수행 종 */}
