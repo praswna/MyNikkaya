@@ -286,3 +286,18 @@ export function highlightSource(text: string): SourceToken[] {
 
   return tokens;
 }
+
+// 색칠한 조각을 줄 단위로 묶는다.
+// 화면에서 줄마다 따로 그리면, 글자를 하나 칠 때 그 줄만 다시 그려도 된다.
+// (경 하나가 4만 자에 조각이 2,500개라 통째로 다시 그리면 타자가 밀린다)
+export function highlightSourceLines(text: string): SourceToken[][] {
+  const lines: SourceToken[][] = [[]];
+  for (const token of highlightSource(text)) {
+    const parts = token.text.split("\n");
+    parts.forEach((part, i) => {
+      if (i > 0) lines.push([]);
+      if (part) lines[lines.length - 1].push({ text: part, kind: token.kind });
+    });
+  }
+  return lines;
+}

@@ -60,7 +60,8 @@ export default function Home() {
   const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editAnchor, setEditAnchor] = useState(0);
-  const [editText, setEditText] = useState("");
+  // 고치는 중인 글은 ref 에만 둔다. 상태로 두면 글자 하나마다 화면 전체가 다시 그려진다.
+  const editTextRef = useRef("");
   const quotesRef = useRef<Quote[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -214,8 +215,8 @@ export default function Home() {
   const commitEdit = useCallback(() => {
     if (!isEditing) return;
     setIsEditing(false);
-    saveQuoteText(editText);
-  }, [isEditing, editText, saveQuoteText]);
+    saveQuoteText(editTextRef.current);
+  }, [isEditing, saveQuoteText]);
 
   const handleCanonSelect = useCallback((quote: Quote) => {
     setIsCanonMapOpen(false);
@@ -280,29 +281,21 @@ export default function Home() {
     try { localStorage.setItem(STORAGE_KEY_CONTENT_WIDTH, String(width)); } catch {}
   }, []);
 
+  const handleEditChange = useCallback((next: string) => { editTextRef.current = next; }, []);
+
   // 본문 자리에서 바로 수정 시작
   const handleEditOpen = useCallback(() => {
     if (!currentQuote || isEditing) return;
-    setEditText(currentQuote.text);
+    editTextRef.current = currentQuote.text;
     // 읽고 있던 맨 윗줄의 원문 위치를 기억해 둔다
     setEditAnchor(findEditAnchor(scrollRef.current, currentQuote.text));
     setIsEditing(true);
   }, [currentQuote, isEditing]);
 
-  // 수정 중에는 루비가 풀린 원문이 보이므로 글이 길어진다.
-  // textarea 를 글 높이만큼 늘려 두면 본문 영역이 그대로 스크롤을 맡는다.
-  const fitEditHeight = useCallback(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = `${ta.scrollHeight}px`;
-  }, []);
-
   // 수정으로 바뀌는 순간, 읽던 줄이 있던 자리로 본문을 맞춘다
   useEffect(() => {
     if (!isEditing || !textareaRef.current) return;
     const ta = textareaRef.current;
-    fitEditHeight();
     ta.focus({ preventScroll: true });
     requestAnimationFrame(() => {
       ta.setSelectionRange(editAnchor, editAnchor);
@@ -312,19 +305,14 @@ export default function Home() {
       const textTop = ta.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
       container.scrollTop = Math.max(textTop + measureTextTop(ta, editAnchor) - EDIT_BUTTON_ZONE, 0);
     });
-  }, [isEditing, editAnchor, fitEditHeight]);
-
-  // 글자 크기를 바꾸면 높이를 다시 맞춘다
-  useEffect(() => {
-    if (isEditing) fitEditHeight();
-  }, [isEditing, fontScale, fitEditHeight]);
+  }, [isEditing, editAnchor]);
 
   // 수정 마치기 (저장)
   const handleEditSave = useCallback(() => {
-    if (!editText.trim()) return;
+    if (!editTextRef.current.trim()) return;
     setIsEditing(false);
-    saveQuoteText(editText);
-  }, [editText, saveQuoteText]);
+    saveQuoteText(editTextRef.current);
+  }, [saveQuoteText]);
 
   // 수정 취소 - 고친 내용은 버린다
   const handleEditCancel = useCallback(() => {
@@ -421,8 +409,8 @@ export default function Home() {
                 // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
                 // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
                 <SourceEditor
-                  value={editText}
-                  onChange={(next) => { setEditText(next); fitEditHeight(); }}
+                  initialValue={currentQuote.text}
+                  onChange={handleEditChange}
                   fontSize={scaledFontSize}
                   lineHeight={metrics.lineHeight}
                   colors={colors}
