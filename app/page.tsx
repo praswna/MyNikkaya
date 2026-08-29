@@ -10,7 +10,9 @@ import { SizeModal, CONTENT_WIDTH_DEFAULT, CONTENT_WIDTH_MAX } from "@/component
 import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
+import { EditPasswordModal } from "@/components/EditPasswordModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
+import { loadEditPassword, saveEditPassword } from "@/lib/edit-key";
 import { getTextMetrics } from "@/lib/text-size";
 import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
 import { THEMES, type Theme } from "@/lib/theme";
@@ -39,6 +41,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isEditSyncing, setIsEditSyncing] = useState(false);
+  const [pendingSave, setPendingSave] = useState<{ oldText: string; newText: string } | null>(null);
+  const [passwordWasRejected, setPasswordWasRejected] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -118,6 +122,34 @@ export default function Home() {
     init();
   }, [applyQuotes]);
 
+  // 시트에 저장. 서버가 암호를 요구하면(401) 하려던 저장을 담아 두고 암호를 묻는다.
+  const syncToSheet = useCallback(async (oldText: string, newText: string) => {
+    setIsEditSyncing(true);
+    setSyncStatus("동기화 중...");
+    try {
+      const res = await fetch("/api/sync-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // 암호는 본문에 담는다 - 헤더(라틴-1)에는 한글 암호를 실을 수 없다
+        body: JSON.stringify({ oldText, newText, password: loadEditPassword() }),
+      });
+      if (res.status === 401) {
+        setPasswordWasRejected(loadEditPassword() !== "");
+        setPendingSave({ oldText, newText });
+        setSyncStatus("편집 암호가 필요합니다");
+        return; // 암호를 받으면 이어서 다시 시도한다
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Unknown error");
+      setSyncStatus("완료 ✓");
+    } catch {
+      setSyncStatus("동기화 실패");
+    } finally {
+      setIsEditSyncing(false);
+    }
+    setTimeout(() => setSyncStatus(null), 2000);
+  }, []);
+
   // 명언 원문 저장 (로컬 캐시 + 시트 동기화)
   // 본문에서 바로 고친 것과 주석 팝업 저장이 같은 경로를 쓴다
   const saveQuoteText = useCallback((newText: string) => {
@@ -129,44 +161,41 @@ export default function Home() {
     const updated: Quote = { ...currentQuote, text: trimmed };
     setCurrentQuote(updated);
 
-    // 백그라운드에서 저장 + 동기화
-    (async () => {
-      // 1. 로컬 저장
-      setSyncStatus("저장 중...");
-      try {
-        const cached = localStorage.getItem("quotes_cache");
-        if (cached) {
-          const quotes: Quote[] = JSON.parse(cached);
-          const idx = quotes.findIndex((q) => q.id === updated.id);
-          if (idx !== -1) {
-            quotes[idx] = updated;
-            localStorage.setItem("quotes_cache", JSON.stringify(quotes));
-            quotesRef.current = quotes;
-          }
+    // 1. 로컬 저장
+    setSyncStatus("저장 중...");
+    try {
+      const cached = localStorage.getItem("quotes_cache");
+      if (cached) {
+        const quotes: Quote[] = JSON.parse(cached);
+        const idx = quotes.findIndex((q) => q.id === updated.id);
+        if (idx !== -1) {
+          quotes[idx] = updated;
+          localStorage.setItem("quotes_cache", JSON.stringify(quotes));
+          quotesRef.current = quotes;
         }
-      } catch {}
-
-      // 2. 시트 동기화
-      setIsEditSyncing(true);
-      setSyncStatus("동기화 중...");
-      try {
-        const res = await fetch("/api/sync-sheet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldText, newText: trimmed }),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error ?? "Unknown error");
-        setSyncStatus("완료 ✓");
-      } catch {
-        setSyncStatus("동기화 실패");
-      } finally {
-        setIsEditSyncing(false);
       }
+    } catch {}
 
-      setTimeout(() => setSyncStatus(null), 2000);
-    })();
-  }, [currentQuote]);
+    // 2. 시트 동기화 (백그라운드)
+    syncToSheet(oldText, trimmed);
+  }, [currentQuote, syncToSheet]);
+
+  // 암호를 받았으면 저장을 이어서 다시 시도한다
+  const handlePasswordSubmit = useCallback((password: string) => {
+    saveEditPassword(password);
+    const job = pendingSave;
+    setPendingSave(null);
+    setPasswordWasRejected(false);
+    if (job) syncToSheet(job.oldText, job.newText);
+  }, [pendingSave, syncToSheet]);
+
+  // 암호를 넣지 않으면 고친 내용은 이 기기에만 남는다 - 그 사실을 알려준다
+  const handlePasswordCancel = useCallback(() => {
+    setPendingSave(null);
+    setPasswordWasRejected(false);
+    setSyncStatus("시트에 저장하지 않았습니다");
+    setTimeout(() => setSyncStatus(null), 3000);
+  }, []);
 
   // 수정 중에 다른 버튼(새 명언·카테고리·경전맵)을 눌러도 고친 내용을 잃지 않게 먼저 저장한다.
   // 되돌리고 싶으면 본문 오른쪽 위의 취소(✕) 버튼을 쓴다.
@@ -238,24 +267,6 @@ export default function Home() {
     setContentWidth(width);
     try { localStorage.setItem(STORAGE_KEY_CONTENT_WIDTH, String(width)); } catch {}
   }, []);
-
-  // 시트 동기화 (현재 명언)
-  const handleSheetSync = useCallback(async () => {
-    if (!currentQuote) return;
-    setSyncStatus("시트에 저장 중...");
-    try {
-      const res = await fetch("/api/sync-sheet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Unknown error");
-      setSyncStatus("시트 저장 완료 ✓");
-    } catch {
-      setSyncStatus("시트 저장 실패");
-    }
-  }, [currentQuote]);
 
   // 본문 자리에서 바로 수정 시작
   const handleEditOpen = useCallback(() => {
@@ -571,6 +582,13 @@ export default function Home() {
         onClose={() => setIsMeditationOpen(false)}
         colors={colors}
         duration={meditationDuration}
+      />
+      <EditPasswordModal
+        isOpen={pendingSave !== null}
+        wasRejected={passwordWasRejected}
+        onSubmit={handlePasswordSubmit}
+        onCancel={handlePasswordCancel}
+        colors={colors}
       />
     </div>
   );

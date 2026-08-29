@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: '명언을 많이 지운 뒤라면 켜기 (크기 급감 검사 건너뛰기)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -20,9 +25,42 @@ jobs:
 
       - name: Download CSV from Google Sheets
         run: |
-          curl -L "${{ secrets.GOOGLE_SHEETS_URL }}" -o public/quotes_export.csv
-          echo "CSV 다운로드 완료"
-          wc -l public/quotes_export.csv
+          # -f 가 없으면 오류 페이지(HTML)도 그대로 CSV 로 저장된다.
+          # 받는 곳도 임시 파일로 두어, 검사를 통과하기 전에는 원본을 건드리지 않는다.
+          curl -fsSL --retry 3 --retry-delay 5 --max-time 120 \
+            "${{ secrets.GOOGLE_SHEETS_URL }}" -o /tmp/quotes_export.csv
+          echo "CSV 다운로드 완료 ($(wc -c < /tmp/quotes_export.csv) 바이트)"
+
+      - name: Validate CSV before replacing
+        env:
+          ALLOW_SHRINK: ${{ inputs.allow_shrink }}
+        run: |
+          new=/tmp/quotes_export.csv
+          old=public/quotes_export.csv
+
+          # 1) 머리글 확인 - 오류 페이지·빈 응답·로그인 화면을 여기서 걸러낸다
+          if ! head -n 1 "$new" | grep -q '^category,text'; then
+            echo "::error::머리글이 'category,text' 가 아닙니다. 받은 첫 줄: $(head -c 120 "$new")"
+            exit 1
+          fi
+
+          # 2) 갑자기 줄어들면 사고를 의심한다 (기존의 절반 미만이면 멈춘다).
+          #    명언을 정말 많이 지운 뒤라면 수동 실행에서 allow_shrink 를 켜면 된다.
+          new_size=$(wc -c < "$new")
+          old_size=0
+          if [ -f "$old" ]; then
+            old_size=$(wc -c < "$old")
+          fi
+          echo "새 파일 ${new_size} 바이트 / 기존 ${old_size} 바이트"
+
+          if [ "$ALLOW_SHRINK" != "true" ] && [ "$new_size" -lt $((old_size / 2)) ]; then
+            echo "::error::내려받은 CSV 가 기존의 절반도 안 됩니다. 시트를 확인해 주세요."
+            echo "::error::정말 많이 지운 것이 맞다면 Actions 에서 allow_shrink 를 켜고 수동 실행하세요."
+            exit 1
+          fi
+
+          mv "$new" "$old"
+          echo "검사 통과 - $(grep -c '' "$old") 줄"
 
       - name: Commit and push if changed
         run: |

@@ -38,13 +38,15 @@ buddhist-quotes/
 │   ├── SplashScreen.tsx      # 앱 시작 스플래시
 │   ├── SettingsModal.tsx     # 설정 팝업 (테마/글자크기/수행)
 │   ├── MeditationModal.tsx   # 수행(명상) 종 타이머
-│   └── QRModal.tsx           # QR 코드 표시
+│   ├── QRModal.tsx           # QR 코드 표시
+│   └── EditPasswordModal.tsx # 시트 저장 암호 묻기
 ├── lib/
 │   ├── types.ts              # Quote, RubySegment 타입
 │   ├── ruby.ts               # 루비/굵게/링크 마크업 파서
 │   ├── csv.ts                # CSV 파싱
 │   ├── loader.ts             # 명언 데이터 로더 (localStorage + Google Sheets)
 │   ├── theme.ts              # 다크/라이트 테마 색상
+│   ├── edit-key.ts           # 편집 암호 보관 (localStorage)
 │   └── text-size.ts          # 텍스트 길이별 폰트 크기
 ├── public/
 │   ├── quotes_export.csv     # 명언 데이터 (Google Sheets 자동 동기화)
@@ -56,8 +58,7 @@ buddhist-quotes/
 │   ├── icon.svg, icon-*.png  # 앱 아이콘 (법륜)
 │   └── manifest.json         # PWA 설정
 └── .github/workflows/
-    ├── deploy.yml            # Vercel 자동 배포 (불필요할 수도)
-    └── sync-csv.yml          # 매일 Google Sheets → CSV 자동 동기화
+    └── sync-csv.yml          # 매일 Google Sheets → CSV 자동 동기화 (검사 통과분만 커밋)
 ```
 
 ## 마크업 문법
@@ -152,25 +153,56 @@ CSV 셀 안에서 그냥 엔터 (Alt+Enter) → 화면에서도 줄바꿈
 - 잠깐 빼두려면 그 탭의 머리글을 `_category` 처럼 바꿔 놓으면 된다
 - 새 탭에는 1행에 `category | text` 머리글을 꼭 넣는다 (없으면 첫 줄이 사라진다)
 
-읽기 URL 은 Apps Script 웹앱의 `…/exec?format=csv` 이고, 두 곳에 넣는다.
+### 설정값은 전부 환경변수에 둔다
+
+**주소도 키도 코드에 적지 않는다.** 이 저장소는 공개라, 코드에 적으면 그대로
+새어 나가고 누구나 시트를 고칠 수 있게 된다. 견본은 `.env.example` 에 있다.
 
 | 곳 | 이름 | 쓰임 |
 |---|---|---|
 | GitHub 저장소 시크릿 | `GOOGLE_SHEETS_URL` | 매일 `public/quotes_export.csv` 갱신 |
-| Vercel 환경변수 | `GOOGLE_SHEETS_URL` | 앱의 동기화 버튼 (`/api/quotes` 가 읽는다) |
+| Vercel 환경변수 | `GOOGLE_SHEETS_URL` | 읽기 — 동기화 버튼 (`/api/quotes` 가 읽는다) |
+| Vercel 환경변수 | `APPS_SCRIPT_URL` | 쓰기 — 같은 배포 주소에서 `?format=csv` 만 뺀 것 |
+| Vercel 환경변수 | `APPS_SCRIPT_KEY` | 쓰기 — Apps Script 스크립트 속성 `SECRET_KEY` 와 같은 값 |
+| Vercel 환경변수 | `EDIT_PASSWORD` | 앱에서 본문을 고칠 때 물어보는 암호 |
+| Apps Script 스크립트 속성 | `SECRET_KEY` | 웹앱이 쓰기 요청을 확인하는 키 |
+
+읽기 URL 은 Apps Script 웹앱의 `…/exec?format=csv`, 쓰기 URL 은 같은 배포의 `…/exec` 다.
 
 **`NEXT_PUBLIC_` 접두어를 붙이지 않는다.** 붙이면 그 값이 브라우저 번들에 그대로
 박힌다. 동기화 버튼은 시트를 직접 부르지 않고 `app/api/quotes/route.ts` 를 거치며,
 시트 주소는 서버만 안다. (덤으로 브라우저 → Apps Script 직접 호출이 아니라서
 CORS 문제도 없다.) 환경변수를 바꾼 뒤에는 재배포해야 적용된다.
 
+`APPS_SCRIPT_URL` · `APPS_SCRIPT_KEY` · `EDIT_PASSWORD` 중 하나라도 비어 있으면
+**저장 기능은 통째로 꺼진다.** 설정하지 않은 곳(로컬 개발 등)에서 실수로 운영
+시트를 고치지 않게 하기 위해서다.
+
+### 편집 암호
+
+`/api/sync-sheet` 는 앱만 부르는 창구가 아니다. 주소를 아는 사람은 누구나 부를 수
+있으므로, 서버가 요청 본문의 `password` 를 `EDIT_PASSWORD` 와 대조한다.
+(헤더가 아니라 본문에 담는다 — HTTP 헤더는 라틴-1 이라 한글 암호가 실리지 않는다.)
+
+- 처음 저장할 때 앱이 암호를 한 번 묻고, 그 기기의 localStorage(`edit_password`)에 담아 둔다
+- 암호를 넣지 않으면 고친 내용은 그 기기에만 남고 시트에는 가지 않는다 (화면에 알려준다)
+- 암호를 바꾸면 각 기기에서 다시 한 번 묻는다
+
 저장은 **본문 전체가 일치하는 행**을 찾아 B열을 덮어쓴다. 그래서 두 탭에
 완전히 똑같은 본문이 있으면 앞 탭에 저장된다. (id `gs-1`… 은 CSV 를 읽을 때마다
 새로 매겨지는 값이라 행을 특정하는 데 쓸 수 없다.)
 
 Apps Script 를 고친 뒤에는 **[배포 관리 → 편집(연필) → 버전: 새 버전 → 배포]**
-로 올린다. 새 배포를 만들면 URL 이 바뀌고, 그러면 `app/api/sync-sheet/route.ts` 의
-`APPS_SCRIPT_URL` 과 위 두 환경변수도 같이 고쳐야 한다.
+로 올린다. 새 배포를 만들면 URL 이 바뀌고, 그러면 `GOOGLE_SHEETS_URL`(GitHub 시크릿·
+Vercel)과 `APPS_SCRIPT_URL`(Vercel)도 같이 고쳐야 한다.
+
+### 키를 바꿔야 할 때
+
+1. Apps Script → [프로젝트 설정 → 스크립트 속성] 의 `SECRET_KEY` 를 새 값으로
+2. [배포 관리] 에서 **새 버전으로 배포** (URL 이 바뀐다)
+3. 옛 배포는 **보관 처리** — 살려 두면 옛 주소로 계속 들어올 수 있다
+4. Vercel 의 `GOOGLE_SHEETS_URL` · `APPS_SCRIPT_URL` · `APPS_SCRIPT_KEY` 와
+   GitHub 시크릿 `GOOGLE_SHEETS_URL` 을 새 값으로 고치고 재배포
 
 ## 작업 패턴
 
