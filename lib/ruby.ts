@@ -190,7 +190,8 @@ export function withNote(text: string, seg: RubySegment, note: string): string {
   const clean = sanitizeNote(note);
   const ruby = seg.rubyRaw ?? "";
   const inner = clean ? `${ruby}^${NEW_NOTE_REF}` : ruby;
-  const nextBody = body.slice(0, seg.braceStart) + `{${inner}}` + body.slice(seg.braceEnd);
+  // 루비도 주석도 없으면 중괄호째 지운다 (안 그러면 본문에 "{}" 가 남는다)
+  const nextBody = body.slice(0, seg.braceStart) + (inner ? `{${inner}}` : "") + body.slice(seg.braceEnd);
 
   return rebuildNotes(nextBody, notes, clean);
 }

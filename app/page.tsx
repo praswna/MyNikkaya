@@ -11,7 +11,7 @@ import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
 import { EditPasswordModal } from "@/components/EditPasswordModal";
-import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
+import { loadQuotes, loadBundledQuotes, saveQuotesCache, syncFromGoogleSheets } from "@/lib/loader";
 import { loadEditPassword, saveEditPassword } from "@/lib/edit-key";
 import { getTextMetrics } from "@/lib/text-size";
 import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
@@ -100,19 +100,37 @@ export default function Home() {
     } catch {}
   }, []);
 
-  const applyQuotes = useCallback((quotes: Quote[], category: string | null) => {
-    const uniqueCategories = Array.from(new Set(quotes.map((q) => q.category)));
+  // 명언 목록을 한 곳에서 갈아끼운다 (메모리·화면·카테고리를 함께 맞춘다)
+  const setQuoteList = useCallback((quotes: Quote[]) => {
     quotesRef.current = quotes;
     setAllQuotes(quotes);
-    setCategories(uniqueCategories);
-    setCurrentQuote(pickRandom(quotes, category));
+    setCategories(Array.from(new Set(quotes.map((q) => q.category))));
   }, []);
+
+  const applyQuotes = useCallback((quotes: Quote[], category: string | null) => {
+    setQuoteList(quotes);
+    setCurrentQuote(pickRandom(quotes, category));
+  }, [setQuoteList]);
 
   useEffect(() => {
     const init = async () => {
       try {
         const result = await loadQuotes();
         applyQuotes(result.quotes, null);
+
+        // 캐시로 띄웠으면 저장소에 실린 CSV(매일 시트에서 갱신된다)와 견줘 본다.
+        // 개수가 달라졌다 = 명언이 늘거나 줄었다는 뜻이라 새 목록으로 갈아끼운다.
+        // 본문만 고친 경우는 개수가 그대로라 여기로 오지 않는다 (내가 고친 글이 되돌아가지 않는다).
+        // 이게 없으면 동기화 버튼을 한 번 누른 기기는 새 명언을 영영 못 본다.
+        if (result.source === "local-storage") {
+          try {
+            const bundled = await loadBundledQuotes();
+            if (bundled.length > 0 && bundled.length !== result.quotes.length) {
+              saveQuotesCache(bundled);
+              setQuoteList(bundled); // 읽고 있던 명언은 그대로 둔다
+            }
+          } catch {}
+        }
       } catch (e) {
         console.error("초기 로드 실패:", e);
       } finally {
@@ -120,7 +138,7 @@ export default function Home() {
       }
     };
     init();
-  }, [applyQuotes]);
+  }, [applyQuotes, setQuoteList]);
 
   // 시트에 저장. 서버가 암호를 요구하면(401) 하려던 저장을 담아 두고 암호를 묻는다.
   const syncToSheet = useCallback(async (oldText: string, newText: string) => {
@@ -161,24 +179,18 @@ export default function Home() {
     const updated: Quote = { ...currentQuote, text: trimmed };
     setCurrentQuote(updated);
 
-    // 1. 로컬 저장
+    // 1. 로컬 저장 - 메모리·경전 맵·캐시를 한꺼번에 맞춘다.
+    //    예전에는 캐시가 이미 있을 때만 반영해서, 동기화 버튼을 한 번도 안 누른
+    //    기기에서는 고친 내용이 다른 명언에 갔다 오면 되돌아가 있었다.
+    //    찾는 기준은 시트에 쓸 때와 같은 '본문 전체 일치' 다.
     setSyncStatus("저장 중...");
-    try {
-      const cached = localStorage.getItem("quotes_cache");
-      if (cached) {
-        const quotes: Quote[] = JSON.parse(cached);
-        const idx = quotes.findIndex((q) => q.id === updated.id);
-        if (idx !== -1) {
-          quotes[idx] = updated;
-          localStorage.setItem("quotes_cache", JSON.stringify(quotes));
-          quotesRef.current = quotes;
-        }
-      }
-    } catch {}
+    const nextQuotes = quotesRef.current.map((q) => (q.text === oldText ? updated : q));
+    setQuoteList(nextQuotes);
+    saveQuotesCache(nextQuotes);
 
     // 2. 시트 동기화 (백그라운드)
     syncToSheet(oldText, trimmed);
-  }, [currentQuote, syncToSheet]);
+  }, [currentQuote, syncToSheet, setQuoteList]);
 
   // 암호를 받았으면 저장을 이어서 다시 시도한다
   const handlePasswordSubmit = useCallback((password: string) => {
