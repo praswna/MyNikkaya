@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { parseRubyText, withNote } from "@/lib/ruby";
+import { parseRubyText, splitNoteBlock, withNote } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
 import { RubySegment } from "@/lib/types";
 
@@ -215,7 +215,9 @@ function NoteModal({
 }
 
 export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: RubyTextProps) {
-  const segments = parseRubyText(text);
+  // 글 끝 각주 블록은 본문으로 그리지 않고, 번호를 실제 주석으로 바꿔 넣는다
+  const { body, notes } = splitNoteBlock(text);
+  const segments = parseRubyText(body, notes);
   const [activeSeg, setActiveSeg] = useState<RubySegment | null>(null);
 
   // 명언이 바뀌면 열려 있던 주석 팝업은 닫기 (렌더 중 상태 조정 패턴)

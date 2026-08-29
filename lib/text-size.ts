@@ -1,11 +1,14 @@
+import { splitNoteBlock } from "./ruby";
+
 export interface TextMetrics {
   fontSize: number;
   lineHeight: string;
 }
 
-// 주석({루비^주석})은 화면에 흐르지 않으므로 글자 크기 계산에서 뺀다
+// 주석은 화면에 흐르지 않으므로 글자 크기 계산에서 뺀다
+// (글 끝 각주 블록 전체와, 옛 형식의 중괄호 안 주석 모두)
 function withoutNotes(text: string): string {
-  return text.replace(/\{([^}]*)\}/g, (whole, inner: string) => {
+  return splitNoteBlock(text).body.replace(/\{([^}]*)\}/g, (whole, inner: string) => {
     const caret = inner.indexOf("^");
     return caret === -1 ? whole : `{${inner.slice(0, caret)}}`;
   });

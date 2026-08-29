@@ -10,6 +10,8 @@
 // 그래서 '원문 글자 수 × 비율' 같은 단순 환산은 크게 어긋난다.
 // =============================================
 
+import { splitNoteBlock } from "./ruby";
+
 // 원문에서 실제로 눈에 보이는(=읽기 화면에서 본문으로 흐르는) 글자만 센다.
 // 루비 주석 {…} 안쪽과 굵게 표시 [[ ]] 기호는 본문 흐름을 차지하지 않으므로 뺀다.
 function visiblePrefixLengths(text: string): number[] {
@@ -132,15 +134,18 @@ function refineWithVisibleText(container: HTMLElement, text: string, prior: numb
 }
 
 // 수정 모드로 들어갈 때 맞출 원문 위치
+// 글 끝 각주 블록은 읽기 화면에 나오지 않으므로 본문만 놓고 센다.
+// 본문은 원문의 앞부분이라 여기서 찾은 위치를 원문에 그대로 쓸 수 있다.
 export function findEditAnchor(container: HTMLElement | null, text: string): number {
   if (!container) return 0;
   const scrollable = container.scrollHeight - container.clientHeight;
   if (scrollable <= 0) return 0;
 
+  const body = splitNoteBlock(text).body;
   const ratio = Math.min(Math.max(container.scrollTop / scrollable, 0), 1);
-  const prior = sourceIndexForRatio(text, ratio);
+  const prior = sourceIndexForRatio(body, ratio);
   try {
-    return refineWithVisibleText(container, text, prior);
+    return refineWithVisibleText(container, body, prior);
   } catch {
     return prior;
   }
