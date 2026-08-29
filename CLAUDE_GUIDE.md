@@ -157,7 +157,12 @@ CSV 셀 안에서 그냥 엔터 (Alt+Enter) → 화면에서도 줄바꿈
 | 곳 | 이름 | 쓰임 |
 |---|---|---|
 | GitHub 저장소 시크릿 | `GOOGLE_SHEETS_URL` | 매일 `public/quotes_export.csv` 갱신 |
-| Vercel 환경변수 | `NEXT_PUBLIC_GOOGLE_SHEETS_URL` | 앱의 동기화 버튼 |
+| Vercel 환경변수 | `GOOGLE_SHEETS_URL` | 앱의 동기화 버튼 (`/api/quotes` 가 읽는다) |
+
+**`NEXT_PUBLIC_` 접두어를 붙이지 않는다.** 붙이면 그 값이 브라우저 번들에 그대로
+박힌다. 동기화 버튼은 시트를 직접 부르지 않고 `app/api/quotes/route.ts` 를 거치며,
+시트 주소는 서버만 안다. (덤으로 브라우저 → Apps Script 직접 호출이 아니라서
+CORS 문제도 없다.) 환경변수를 바꾼 뒤에는 재배포해야 적용된다.
 
 저장은 **본문 전체가 일치하는 행**을 찾아 B열을 덮어쓴다. 그래서 두 탭에
 완전히 똑같은 본문이 있으면 앞 탭에 저장된다. (id `gs-1`… 은 CSV 를 읽을 때마다

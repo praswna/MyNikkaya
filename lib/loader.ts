@@ -44,14 +44,10 @@ export async function loadQuotes(): Promise<QuoteLoadResult> {
 }
 
 // 우측 버튼: Google Sheets에서 가져와서 localStorage에 저장
+// 시트 주소는 서버(/api/quotes)만 알고 있다 - 브라우저에 노출하지 않기 위해서다
 export async function syncFromGoogleSheets(): Promise<QuoteLoadResult> {
-  const googleSheetsUrl = process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL;
-
-  if (!googleSheetsUrl) {
-    throw new Error("Google Sheets URL이 설정되지 않았습니다.");
-  }
-
-  const csvText = await fetchCSV(`${googleSheetsUrl}&t=${Date.now()}`);
+  // Apps Script 를 거치므로 기본값(8초)보다 넉넉히 기다린다
+  const csvText = await fetchCSV(`/api/quotes?t=${Date.now()}`, 20000);
   const quotes = parseGoogleSheetsCSV(csvText);
 
   if (quotes.length === 0) {
