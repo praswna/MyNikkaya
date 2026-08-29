@@ -11,7 +11,7 @@ import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { loadQuotes, syncFromGoogleSheets } from "@/lib/loader";
 import { getTextMetrics } from "@/lib/text-size";
-import { findEditAnchor, measureScrollTop } from "@/lib/edit-position";
+import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
 import { THEMES, type Theme } from "@/lib/theme";
 import type { Quote } from "@/lib/types";
 
@@ -20,6 +20,7 @@ import type { Quote } from "@/lib/types";
 // =============================================
 const STORAGE_KEY_THEME = "app_theme";           // 테마 localStorage 키
 const STORAGE_KEY_FONT_SCALE = "app_font_scale"; // 글자 크기 localStorage 키
+const EDIT_BUTTON_ZONE = 44;                     // 본문 오른쪽 위 수정 버튼이 차지하는 높이(px)
 
 // Google Apps Script 배포 URL (시트 동기화용)
 // 수정하려면 Apps Script에서 새 버전 배포 후 URL 교체
@@ -56,9 +57,7 @@ export default function Home() {
   const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editAnchor, setEditAnchor] = useState(0);
-  const [editOpenCount, setEditOpenCount] = useState(0);
   const [editText, setEditText] = useState("");
-  const [editStatus, setEditStatus] = useState<string | null>(null);
   const quotesRef = useRef<Quote[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -118,109 +117,8 @@ export default function Home() {
     init();
   }, [applyQuotes]);
 
-  const handleCanonSelect = useCallback((quote: Quote) => {
-    setIsCanonMapOpen(false);
-    setIsEditing(false);
-    setEditStatus(null);
-    setCurrentQuote(quote);
-    scrollRef.current?.scrollTo({ top: 0 });
-  }, []);
-
-  const handleNewQuote = useCallback(() => {
-    setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
-    setIsEditing(false);
-    setEditStatus(null);
-    scrollRef.current?.scrollTo({ top: 0 });
-    setWheelRotate((prev) => prev + 45);
-    setIsEditSyncing((syncing) => { if (!syncing) setSyncStatus(null); return syncing; });
-  }, [selectedCategory]);
-
-  const handleSync = useCallback(async () => {
-    setIsSyncing(true);
-    setSyncStatus("Google Sheets에서 최신 명언을 가져오는 중...");
-    try {
-      const result = await syncFromGoogleSheets();
-      const categoryStillExists = selectedCategory
-        ? result.quotes.some((q) => q.category === selectedCategory)
-        : true;
-      const nextCategory = categoryStillExists ? selectedCategory : null;
-      if (!categoryStillExists) setSelectedCategory(null);
-      applyQuotes(result.quotes, nextCategory);
-      setSyncStatus(`${result.quotes.length}개를 최신으로 업데이트했습니다.`);
-    } catch (e) {
-      console.error(e);
-      setSyncStatus("동기화에 실패했습니다.");
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [selectedCategory, applyQuotes]);
-
-  const handleCategorySelect = useCallback((cat: string | null) => {
-    setSyncStatus(null);
-    const next = cat === selectedCategory ? null : cat;
-    setSelectedCategory(next);
-    setCurrentQuote(pickRandom(quotesRef.current, next));
-    setIsEditing(false);
-    setEditStatus(null);
-    scrollRef.current?.scrollTo({ top: 0 });
-  }, [selectedCategory]);
-
-  const handleThemeToggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      try { localStorage.setItem(STORAGE_KEY_THEME, next); } catch {}
-      return next;
-    });
-  }, []);
-
-  const handleFontScaleChange = useCallback((scale: number) => {
-    setFontScale(scale);
-    try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
-  }, []);
-
-  // 시트 동기화 (현재 명언)
-  const handleSheetSync = useCallback(async () => {
-    if (!currentQuote) return;
-    setSyncStatus("시트에 저장 중...");
-    try {
-      const res = await fetch("/api/sync-sheet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Unknown error");
-      setSyncStatus("시트 저장 완료 ✓");
-    } catch {
-      setSyncStatus("시트 저장 실패");
-    }
-  }, [currentQuote]);
-
-  // 수정 모드 시작
-  const handleEditOpen = useCallback(() => {
-    if (!currentQuote) return;
-    setEditText(currentQuote.text);
-    setEditStatus(null);
-    // 읽기 화면 맨 위에 보이던 글자의 원문 위치를 기억해 둔다
-    setEditAnchor(findEditAnchor(scrollRef.current, currentQuote.text));
-    setIsEditing(true);
-    setEditOpenCount((prev) => prev + 1);
-  }, [currentQuote]);
-
-  useEffect(() => {
-    if (!isEditing || !textareaRef.current) return;
-    const ta = textareaRef.current;
-    ta.focus();
-    requestAnimationFrame(() => {
-      ta.setSelectionRange(editAnchor, editAnchor);
-      // 한 줄 여유를 둬서 맞춘 줄이 화면 맨 끝에 붙지 않게 한다
-      const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 0;
-      ta.scrollTop = Math.max(measureScrollTop(ta, editAnchor) - lineHeight, 0);
-    });
-  }, [isEditing, editAnchor]);
-
   // 명언 원문 저장 (로컬 캐시 + 시트 동기화)
-  // 수정 화면 저장과 주석 팝업 저장이 같은 경로를 쓴다
+  // 본문에서 바로 고친 것과 주석 팝업 저장이 같은 경로를 쓴다
   const saveQuoteText = useCallback((newText: string) => {
     if (!currentQuote) return;
     const trimmed = newText.trim();
@@ -269,14 +167,140 @@ export default function Home() {
     })();
   }, [currentQuote]);
 
-  // 수정 저장
-  const handleEditSave = useCallback(() => {
-    if (!currentQuote || !editText.trim()) return;
-    // 편집 화면 즉시 닫기
+  // 수정 중에 다른 버튼(새 명언·카테고리·경전맵)을 눌러도 고친 내용을 잃지 않게 먼저 저장한다.
+  // 되돌리고 싶으면 본문 오른쪽 위의 취소(✕) 버튼을 쓴다.
+  const commitEdit = useCallback(() => {
+    if (!isEditing) return;
     setIsEditing(false);
-    setEditStatus(null);
     saveQuoteText(editText);
-  }, [currentQuote, editText, saveQuoteText]);
+  }, [isEditing, editText, saveQuoteText]);
+
+  const handleCanonSelect = useCallback((quote: Quote) => {
+    setIsCanonMapOpen(false);
+    commitEdit();
+    setCurrentQuote(quote);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [commitEdit]);
+
+  const handleNewQuote = useCallback(() => {
+    commitEdit();
+    setCurrentQuote((prev) => pickRandom(quotesRef.current, selectedCategory, prev?.id ?? undefined));
+    scrollRef.current?.scrollTo({ top: 0 });
+    setWheelRotate((prev) => prev + 45);
+    setIsEditSyncing((syncing) => { if (!syncing) setSyncStatus(null); return syncing; });
+  }, [selectedCategory, commitEdit]);
+
+  const handleSync = useCallback(async () => {
+    commitEdit();
+    setIsSyncing(true);
+    setSyncStatus("Google Sheets에서 최신 명언을 가져오는 중...");
+    try {
+      const result = await syncFromGoogleSheets();
+      const categoryStillExists = selectedCategory
+        ? result.quotes.some((q) => q.category === selectedCategory)
+        : true;
+      const nextCategory = categoryStillExists ? selectedCategory : null;
+      if (!categoryStillExists) setSelectedCategory(null);
+      applyQuotes(result.quotes, nextCategory);
+      setSyncStatus(`${result.quotes.length}개를 최신으로 업데이트했습니다.`);
+    } catch (e) {
+      console.error(e);
+      setSyncStatus("동기화에 실패했습니다.");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [selectedCategory, applyQuotes, commitEdit]);
+
+  const handleCategorySelect = useCallback((cat: string | null) => {
+    setSyncStatus(null);
+    commitEdit();
+    const next = cat === selectedCategory ? null : cat;
+    setSelectedCategory(next);
+    setCurrentQuote(pickRandom(quotesRef.current, next));
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [selectedCategory, commitEdit]);
+
+  const handleThemeToggle = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      try { localStorage.setItem(STORAGE_KEY_THEME, next); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleFontScaleChange = useCallback((scale: number) => {
+    setFontScale(scale);
+    try { localStorage.setItem(STORAGE_KEY_FONT_SCALE, String(scale)); } catch {}
+  }, []);
+
+  // 시트 동기화 (현재 명언)
+  const handleSheetSync = useCallback(async () => {
+    if (!currentQuote) return;
+    setSyncStatus("시트에 저장 중...");
+    try {
+      const res = await fetch("/api/sync-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: currentQuote.id, text: currentQuote.text }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error ?? "Unknown error");
+      setSyncStatus("시트 저장 완료 ✓");
+    } catch {
+      setSyncStatus("시트 저장 실패");
+    }
+  }, [currentQuote]);
+
+  // 본문 자리에서 바로 수정 시작
+  const handleEditOpen = useCallback(() => {
+    if (!currentQuote || isEditing) return;
+    setEditText(currentQuote.text);
+    // 읽고 있던 맨 윗줄의 원문 위치를 기억해 둔다
+    setEditAnchor(findEditAnchor(scrollRef.current, currentQuote.text));
+    setIsEditing(true);
+  }, [currentQuote, isEditing]);
+
+  // 수정 중에는 루비가 풀린 원문이 보이므로 글이 길어진다.
+  // textarea 를 글 높이만큼 늘려 두면 본문 영역이 그대로 스크롤을 맡는다.
+  const fitEditHeight = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, []);
+
+  // 수정으로 바뀌는 순간, 읽던 줄이 있던 자리로 본문을 맞춘다
+  useEffect(() => {
+    if (!isEditing || !textareaRef.current) return;
+    const ta = textareaRef.current;
+    fitEditHeight();
+    ta.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      ta.setSelectionRange(editAnchor, editAnchor);
+      const container = scrollRef.current;
+      if (!container) return;
+      // 읽던 줄이 오른쪽 위 버튼에 가리지 않도록 그 아래에 오게 한다
+      const textTop = ta.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+      container.scrollTop = Math.max(textTop + measureTextTop(ta, editAnchor) - EDIT_BUTTON_ZONE, 0);
+    });
+  }, [isEditing, editAnchor, fitEditHeight]);
+
+  // 글자 크기를 바꾸면 높이를 다시 맞춘다
+  useEffect(() => {
+    if (isEditing) fitEditHeight();
+  }, [isEditing, fontScale, fitEditHeight]);
+
+  // 수정 마치기 (저장)
+  const handleEditSave = useCallback(() => {
+    if (!editText.trim()) return;
+    setIsEditing(false);
+    saveQuoteText(editText);
+  }, [editText, saveQuoteText]);
+
+  // 수정 취소 - 고친 내용은 버린다
+  const handleEditCancel = useCallback(() => {
+    setIsEditing(false);
+  }, []);
 
   if (isLoading) {
     return <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }} />;
@@ -292,6 +316,7 @@ export default function Home() {
 
   const metrics = getTextMetrics(currentQuote.text);
   const scaledFontSize = Math.round(metrics.fontSize * fontScale);
+  const roundButton = "flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-transform active:scale-95";
 
   return (
     <div
@@ -353,75 +378,85 @@ export default function Home() {
         </div>
       )}
 
-      {/* 수정 모드 전체화면 */}
-      {isEditing && (
-        <div
-          className="fixed inset-0 z-30 flex flex-col p-4"
-          style={{
-            backgroundColor: colors.bg,
-            paddingTop: "calc(env(safe-area-inset-top) + 1rem)",
-            paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)",
-          }}
-        >
-          <textarea
-            ref={textareaRef}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            className="flex-1 rounded-xl p-4 resize-none outline-none"
-            style={{
-              backgroundColor: colors.bgSecondary,
-              color: colors.text,
-              border: `1px solid ${colors.border}`,
-              fontFamily: "inherit",
-              lineHeight: "1.6",
-              fontSize: scaledFontSize,
-            }}
-          />
-          {editStatus && (
-            <p className="mt-2 text-xs text-center" style={{ color: colors.textMuted }}>{editStatus}</p>
-          )}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={() => { setIsEditing(false); setEditStatus(null); }}
-              className="flex-1 rounded-xl py-3 text-sm font-medium"
-              style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
-            >취소</button>
-            <button
-              onClick={handleEditSave}
-              className="flex-1 rounded-xl py-3 text-sm font-medium"
-              style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-            >저장</button>
-          </div>
-        </div>
-      )}
-
-      {/* 명언 영역 */}
-      {/* 스크롤 영역 밖에 연필 버튼을 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
+      {/* 명언 영역 - 읽기와 수정이 같은 자리를 쓴다 */}
+      {/* 버튼은 스크롤 영역 밖에 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
       <div className="relative flex min-h-0 flex-1">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
           <div className="flex min-h-full items-center justify-center">
-            <RubyText
-              text={currentQuote.text}
-              fontSize={scaledFontSize}
-              lineHeight={metrics.lineHeight}
-              colors={colors}
-              onTextChange={saveQuoteText}
-            />
+            {isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={editText}
+                onChange={(e) => { setEditText(e.target.value); fitEditHeight(); }}
+                spellCheck={false}
+                aria-label="명언 원문"
+                className="w-full resize-none overflow-hidden bg-transparent p-0 text-center font-semibold outline-none"
+                style={{
+                  fontSize: scaledFontSize,
+                  lineHeight: metrics.lineHeight,
+                  color: colors.text,
+                  caretColor: colors.textEmphasis,
+                  fontFamily: "inherit",
+                  wordBreak: "keep-all",
+                  border: "none",
+                  WebkitAppearance: "none",
+                  // 위아래로 같은 여백을 둬서, 글이 길 때 첫 줄이 오른쪽 위 버튼에 가리지 않게 한다
+                  // (짧은 명언은 가운데 정렬이라 여백이 있어도 자리가 그대로다)
+                  margin: `${EDIT_BUTTON_ZONE}px 0`,
+                }}
+              />
+            ) : (
+              <RubyText
+                text={currentQuote.text}
+                fontSize={scaledFontSize}
+                lineHeight={metrics.lineHeight}
+                colors={colors}
+                onTextChange={saveQuoteText}
+              />
+            )}
           </div>
         </div>
 
-        {/* 내용 수정 - 설정을 거치지 않고 메인화면에서 바로 */}
-        <button
-          onClick={handleEditOpen}
-          aria-label="내용 수정"
-          className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-transform active:scale-95"
-          style={{ backgroundColor: colors.buttonPrimary }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-          </svg>
-        </button>
+        {/* 수정 버튼 - 화면을 옮기지 않고 본문에서 바로 고친다 */}
+        <div className="absolute right-1 top-1 flex gap-1.5">
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleEditCancel}
+                aria-label="수정 취소"
+                className={roundButton}
+                style={{ backgroundColor: colors.buttonPrimary }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+              <button
+                onClick={handleEditSave}
+                aria-label="수정 완료"
+                className={roundButton}
+                style={{ backgroundColor: colors.categorySelected }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.categorySelectedText} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleEditOpen}
+              aria-label="내용 수정"
+              className={roundButton}
+              style={{ backgroundColor: colors.buttonPrimary }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 하단 버튼 */}

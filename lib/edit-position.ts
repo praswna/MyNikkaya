@@ -1,10 +1,10 @@
 // =============================================
-// 읽기 화면 ↔ 수정 화면 위치 맞추기
+// 읽기 ↔ 수정 전환할 때 위치 맞추기
 //
-// 읽기 화면 맨 위에 보이던 글자가 수정 화면에서도 맨 위에 오도록,
-// 원문에서의 글자 위치(anchor)를 찾고 그 위치의 픽셀 높이를 잰다.
+// 본문 자리에서 바로 수정하므로, 읽고 있던 글자가 수정 상태에서도
+// 같은 자리에 오도록 원문에서의 글자 위치(anchor)를 찾고 그 픽셀 높이를 잰다.
 //
-// 두 화면은 글자 모양이 완전히 다르다.
+// 두 상태는 글자 모양이 완전히 다르다.
 //   읽기: 물질{rūpa, 색}  →  '물질' 위에 작은 루비가 붙은 두 글자
 //   수정: 물질{rūpa, 색}  →  그대로 12글자
 // 그래서 '원문 글자 수 × 비율' 같은 단순 환산은 크게 어긋난다.
@@ -146,10 +146,10 @@ export function findEditAnchor(container: HTMLElement | null, text: string): num
   }
 }
 
-// textarea에서 해당 원문 위치가 실제로 몇 px 지점인지 잰다.
+// textarea 위쪽 끝에서 해당 원문 위치까지가 몇 px인지 잰다.
 // 줄바꿈 개수만 세면 자동 줄바꿈(wrap)이 빠져서 크게 어긋나므로,
 // 같은 글꼴·폭을 가진 숨은 div에 그대로 흘려보고 측정한다.
-export function measureScrollTop(ta: HTMLTextAreaElement, index: number): number {
+export function measureTextTop(ta: HTMLTextAreaElement, index: number): number {
   if (index <= 0) return 0;
 
   const cs = getComputedStyle(ta);
@@ -179,6 +179,5 @@ export function measureScrollTop(ta: HTMLTextAreaElement, index: number): number
   const top = marker.offsetTop - (parseFloat(cs.paddingTop) || 0);
   mirror.remove();
 
-  const max = Math.max(ta.scrollHeight - ta.clientHeight, 0);
-  return Math.min(Math.max(top, 0), max);
+  return Math.max(top, 0);
 }
