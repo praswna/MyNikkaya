@@ -396,16 +396,32 @@ export default function Home() {
       )}
 
       {/* 명언 영역 */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
-        <div className="flex min-h-full items-center justify-center">
-          <RubyText
-            text={currentQuote.text}
-            fontSize={scaledFontSize}
-            lineHeight={metrics.lineHeight}
-            colors={colors}
-            onTextChange={saveQuoteText}
-          />
+      {/* 스크롤 영역 밖에 연필 버튼을 두어야 본문을 내려도 오른쪽 위에 그대로 남는다 */}
+      <div className="relative flex min-h-0 flex-1">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4 overscroll-contain">
+          <div className="flex min-h-full items-center justify-center">
+            <RubyText
+              text={currentQuote.text}
+              fontSize={scaledFontSize}
+              lineHeight={metrics.lineHeight}
+              colors={colors}
+              onTextChange={saveQuoteText}
+            />
+          </div>
         </div>
+
+        {/* 내용 수정 - 설정을 거치지 않고 메인화면에서 바로 */}
+        <button
+          onClick={handleEditOpen}
+          aria-label="내용 수정"
+          className="absolute right-1 top-1 flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition-transform active:scale-95"
+          style={{ backgroundColor: colors.buttonPrimary }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.buttonIcon} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+          </svg>
+        </button>
       </div>
 
       {/* 하단 버튼 */}

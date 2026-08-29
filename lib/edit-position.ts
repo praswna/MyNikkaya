@@ -62,7 +62,7 @@ export function sourceIndexForRatio(text: string, ratio: number): number {
 // 비율로 낸 추정치(prior) 근처에서 찾으므로 반복되는 문구에도 헷갈리지 않는다.
 //
 // 화면 좌표로 훑는 caretPositionFromPoint는 설정 모달 같은 오버레이가 덮고 있으면
-// 그 오버레이를 집어버린다. 수정 모드는 설정 모달에서 들어오므로 항상 가려진 상태다.
+// 그 오버레이를 집어버린다. 수정 모드는 설정 모달에서도 들어오므로 가려진 경우가 있다.
 // 그래서 히트 테스트 대신 글자 노드를 직접 훑어 Range 좌표로 위치를 잰다.
 function textNodesOf(container: HTMLElement): Text[] {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
