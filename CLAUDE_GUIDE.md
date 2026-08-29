@@ -151,7 +151,9 @@ git push origin main
 4. **iOS PWA 제약**: 
    - 상태바 색상 제한적 (default/black/black-translucent만)
    - 백그라운드 오디오 제한 → 통짜 mp3로 해결
-5. **루비 줄바꿈**: `whiteSpace: "pre-line"` + `\n` 사용 (크롬 호환성)
+5. **루비 줄바꿈**: 크롬은 `<rt>` 안의 줄바꿈(`\n` + `pre-line`, `<br>`, 블록 자식)을 전부
+   무시하고 한 줄로 붙인다. 조각마다 `<span>`을 만들고 `display:inline-flex` + `flex-direction:column`
+   상자로 감싸야 크롬에서도 줄이 나뉜다 (사파리는 두 방식 다 잘 나뉨)
 
 ## 작업 스타일
 

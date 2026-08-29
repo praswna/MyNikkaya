@@ -102,9 +102,16 @@ function renderSegment(
           fontWeight: "normal",
           letterSpacing: "0.02em",
           lineHeight: "1",
-          whiteSpace: "pre-line",
         }}>
-          {seg.ruby.join("\n")}
+          {/* 루비 조각을 위아래로 쌓는다.
+              크롬은 rt 안에서 줄바꿈(\n, <br>, 블록 자식)을 모두 무시하고 한 줄로 붙여버린다.
+              별도의 서식 문맥을 만드는 상자(inline-flex)로 감싸야 크롬에서도 줄이 나뉜다.
+              사파리(아이폰)는 원래 잘 나뉘었고 이 방식도 그대로 나뉜다. */}
+          <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+            {seg.ruby.map((part, k) => (
+              <span key={k}>{part}</span>
+            ))}
+          </span>
         </rt>
       </ruby>
     );
