@@ -18,6 +18,7 @@ interface SettingsModalProps {
   fontScale: number;
   contentWidth: number;
   onSizeOpen: () => void;
+  onColorOpen: () => void;
   onMeditationStart: (duration: number) => void;
   onQROpen: () => void;
   onEditOpen: () => void;
@@ -85,6 +86,13 @@ const Icons = {
       <path d="M8 16H3v5" />
     </svg>
   ),
+  palette: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="13.5" cy="6.5" r=".5" fill={color} /><circle cx="17.5" cy="10.5" r=".5" fill={color} />
+      <circle cx="8.5" cy="7.5" r=".5" fill={color} /><circle cx="6.5" cy="12.5" r=".5" fill={color} />
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+    </svg>
+  ),
   map: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
@@ -102,7 +110,7 @@ const Icons = {
 
 export function SettingsModal({
   isOpen, onClose, theme, onThemeToggle, fontScale, contentWidth,
-  onSizeOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
+  onSizeOpen, onColorOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEscape(isOpen, onClose);
@@ -191,6 +199,16 @@ export function SettingsModal({
             ))}
           </div>
         </div>
+
+        {/* 색 조절 */}
+        <button
+          onClick={() => { onColorOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          {Icons.palette(colors.text)}
+          <span>색 조절</span>
+        </button>
 
         {/* 불교 경전 맵 */}
         <button

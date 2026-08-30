@@ -41,6 +41,7 @@ buddhist-quotes/
 │   ├── CanonMapModal.tsx     # 불교 경전 맵
 │   ├── PromptModal.tsx       # 번역 프롬프트
 │   ├── QRModal.tsx           # QR 코드 표시
+│   ├── ColorModal.tsx        # 색 조절 (모든 색 + 값 복사)
 │   └── EditPasswordModal.tsx # 시트 저장 암호 묻기
 ├── lib/
 │   ├── types.ts              # Quote, RubySegment 타입
@@ -49,6 +50,7 @@ buddhist-quotes/
 │   ├── loader.ts             # 명언 데이터 로더 (localStorage + Google Sheets)
 │   ├── theme.ts              # 다크/라이트 테마 색상
 │   ├── settings.ts           # 테마·크기 설정 (localStorage, useSyncExternalStore)
+│   ├── colors.ts             # 색 바꾸기 - 기본 색 위에 덮는다
 │   ├── edit-key.ts           # 편집 암호 보관 (localStorage)
 │   ├── edit-position.ts      # 읽기↔수정 전환 때 위치 맞추기
 │   ├── read-position.ts      # 명언마다 읽던 자리 기억
@@ -177,13 +179,20 @@ CSV 셀 안에서 그냥 엔터 (Alt+Enter) → 화면에서도 줄바꿈
    - 재생 로직은 `lib/use-bell.ts` 한 곳에 있다 (설정 팝업과 `/bell` 페이지가 같이 쓴다)
    - 소리가 막히거나 끝내 안 받아지면(30초) 안내와 `다시 시작` 버튼이 뜬다
 5. **테마 전환**: 다크/라이트, localStorage 저장
-6. **크기 조절** (설정 > 크기 조절, 한 창에 슬라이더 두 개, localStorage 저장)
+6. **색 조절** (설정 > 색 조절): 19가지 색을 그 자리에서 바꾼다
+   - 다크·라이트를 따로 기억한다 (localStorage `app_colors`)
+   - `되돌리기` 는 지금 보고 있는 테마만 기본값으로 돌린다
+   - `값 복사` 는 두 테마를 모두 담아 복사한다 (바꾼 것에는 `←바꿈` 표시)
+   - 기본 색을 아예 바꾸려면 복사한 값을 `lib/theme.ts` 에 옮겨 적는다
+   - **theme.ts 의 값은 모두 `#RRGGBB` 여야 한다** - 색 선택기가 반투명(rgba)을
+     다루지 못한다. 판 바탕도 바탕색과 섞은 결과를 그대로 적어 둔다
+7. **크기 조절** (설정 > 크기 조절, 한 창에 슬라이더 두 개, localStorage 저장)
    - **글자 크기**: 70~250%
    - **가로 크기**: 화면이 넓은 PC 에서 카테고리·본문·버튼이 양옆으로 퍼지지 않게
      화면 전체를 가운데 기둥으로 좁힌다 (기본 720px, 맨 오른쪽은 제한 없음)
    - 두 슬라이더 모두 움직이는 즉시 화면에 반영된다
-7. **Google Sheets 동기화**: 매일 자동 + 수동 동기화 버튼
-8. **읽던 자리 기억**: 긴 경을 보다 나가도 다음에 그 자리에서 이어 읽는다
+8. **Google Sheets 동기화**: 매일 자동 + 수동 동기화 버튼
+9. **읽던 자리 기억**: 긴 경을 보다 나가도 다음에 그 자리에서 이어 읽는다
    (본문으로 이름표를 만들어 최근 30개, `lib/read-position.ts`)
 
 ## 명언 데이터가 흐르는 길

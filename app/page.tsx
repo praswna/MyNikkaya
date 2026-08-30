@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from "react";
 import { DharmaWheel } from "@/components/DharmaWheel";
 import { RubyText } from "@/components/RubyText";
 import { SettingsModal } from "@/components/SettingsModal";
@@ -11,11 +11,13 @@ import { PromptModal } from "@/components/PromptModal";
 import { CanonMapModal } from "@/components/CanonMapModal";
 import { SourceEditor } from "@/components/SourceEditor";
 import { EditPasswordModal } from "@/components/EditPasswordModal";
+import { ColorModal } from "@/components/ColorModal";
 import { loadQuotes, loadBundledQuotes, saveQuotesCache, syncFromGoogleSheets } from "@/lib/loader";
 import { loadEditPassword, saveEditPassword } from "@/lib/edit-key";
 import { getTextMetrics } from "@/lib/text-size";
 import { findEditAnchor, measureTextTop } from "@/lib/edit-position";
-import { THEMES, type Theme } from "@/lib/theme";
+import { type Theme } from "@/lib/theme";
+import { mergeColors, useColorOverrides } from "@/lib/colors";
 import { useStoredSetting } from "@/lib/settings";
 import { loadReadPosition, saveReadPosition } from "@/lib/read-position";
 import type { Quote } from "@/lib/types";
@@ -77,6 +79,7 @@ export default function Home() {
   const [isQROpen, setIsQROpen] = useState(false);
   const [isSizeOpen, setIsSizeOpen] = useState(false);
   const [isCanonMapOpen, setIsCanonMapOpen] = useState(false);
+  const [isColorOpen, setIsColorOpen] = useState(false);
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [theme, setTheme] = useStoredSetting<Theme>(
     STORAGE_KEY_THEME, "dark", (raw) => (raw === "light" ? "light" : "dark"));
@@ -97,7 +100,9 @@ export default function Home() {
   const readPositionRef = useRef<{ text: string; top: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const colors = THEMES[theme];
+  // 설정 > 색 조절에서 고른 색을 기본 색 위에 덮는다
+  const colorOverrides = useColorOverrides();
+  const colors = useMemo(() => mergeColors(theme, colorOverrides), [theme, colorOverrides]);
 
   // 스플래시 타이머
   useEffect(() => {
@@ -603,6 +608,7 @@ export default function Home() {
         fontScale={fontScale}
         contentWidth={contentWidth}
         onSizeOpen={() => { setIsSizeOpen(true); setIsSettingsOpen(false); }}
+        onColorOpen={() => { setIsColorOpen(true); setIsSettingsOpen(false); }}
         onMeditationStart={(duration) => { setMeditationDuration(duration); setIsMeditationOpen(true); }}
         onQROpen={() => { setIsQROpen(true); setIsSettingsOpen(false); }}
         onEditOpen={handleEditOpen}
@@ -629,6 +635,12 @@ export default function Home() {
         onFontScaleChange={setFontScale}
         contentWidth={contentWidth}
         onContentWidthChange={setContentWidth}
+        colors={colors}
+      />
+      <ColorModal
+        isOpen={isColorOpen}
+        onClose={() => setIsColorOpen(false)}
+        theme={theme}
         colors={colors}
       />
       <QRModal
