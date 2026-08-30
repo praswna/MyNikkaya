@@ -25,13 +25,18 @@ function getBaseFontSize(text: string): string {
 }
 
 // 루비 텍스트(위첨자) 크기 - 글자 수 기준 자동 조절
-// 값이 작을수록 루비 텍스트가 작아짐
+//
+// 본문 크기는 글 길이에 따라 12px 까지 줄어드는데, 루비는 그 절반이라
+// 긴 경에서는 5px 안팎이 되어 읽을 수가 없었다. 그래서 최소 크기를 둔다.
+// max(9px, …) 는 본문이 아무리 작아져도 루비가 9px 아래로 내려가지 않게 한다.
 function getRubyFontSize(parts: string[]): string {
   const maxLen = Math.max(...parts.map((r) => r.length));
-  if (maxLen > 12) return "0.38em"; // 매우 긴 루비
-  if (maxLen > 8)  return "0.44em"; // 긴 루비
-  if (maxLen > 4)  return "0.50em"; // 중간 루비
-  return "0.55em";                  // 짧은 루비 (기본)
+  const em =
+    maxLen > 12 ? 0.42 : // 매우 긴 루비
+    maxLen > 8  ? 0.48 : // 긴 루비
+    maxLen > 4  ? 0.54 : // 중간 루비
+    0.58;                // 짧은 루비 (기본)
+  return `max(9px, ${em}em)`;
 }
 
 function renderSegment(
@@ -97,12 +102,17 @@ function renderSegment(
         ) : (
           seg.content
         )}
+        {/* 색은 둘레를 따라간다 - 말씀 판 안에서는 금빛, 평문에서는 본문색.
+            따로 회갈색을 박아 두면 금빛 말씀 옆에서 탁해 보이고,
+            본문보다 밝아져 딸림글이 본문보다 튀는 일도 생겼다.
+            흐리게 만들지는 않는다 - 라이트 모드는 본문이 4.79:1 이라 깎을 여유가 없고,
+            위계는 절반으로 작은 크기가 이미 만든다. */}
         <rt style={{
           fontSize: getRubyFontSize(seg.ruby),
-          color: colors.rubyText,
+          color: "inherit",
           fontWeight: "normal",
           letterSpacing: "0.02em",
-          lineHeight: "1",
+          lineHeight: "1.15",
         }}>
           {/* 루비 조각을 위아래로 쌓는다.
               크롬은 rt 안에서 줄바꿈(\n, <br>, 블록 자식)을 모두 무시하고 한 줄로 붙여버린다.
