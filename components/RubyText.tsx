@@ -47,7 +47,7 @@ function renderSegment(
   }
   if (seg.type === "bold" && seg.innerSegments) {
     return (
-      <strong key={i} style={{ color: colors.textBold, fontWeight: 900 }}>
+      <strong key={i} style={{ color: colors.textBold, fontWeight: 900, fontSize: "1.3em" }}>
         {seg.innerSegments.map((inner, j) => renderSegment(inner, j, colors, true, editable, onRubyOpen))}
       </strong>
     );
@@ -123,9 +123,13 @@ function renderSegment(
 // 평문 · 대화 · 부처님 말씀.
 // 대화와 말씀은 판에 담아 누가 말하는지 한눈에 보이게 한다.
 // 한 덩어리(> … < / >> … <<)가 판 하나다 - 안에 문단이 여럿이면 그대로 이어진다.
-// 판 바탕은 아주 옅게만 깔고, 구분은 글자 크기와 굵기가 맡는다.
-//   대화 0.94배 · 가늘게(400)   평문 1배 · 보통(600)   말씀 1.14배 · 굵게(800)
-// 테두리는 두지 않는다 (선이 있으면 글보다 상자가 먼저 눈에 들어온다).
+// 판 바탕은 아주 옅게만 깔고, 구분은 글자 크기가 맡는다.
+// 뒤로 갈수록 커진다 - 서술보다 대화가, 대화보다 말씀이 앞에 온다.
+//
+//   평문 1배   대화 1.08배   말씀 1.2배   제목 1.3배(굵게·금색)
+//
+// 굵기는 건드리지 않는다 (제목만 굵다). 테두리도 두지 않는다 -
+// 선이 있으면 글보다 상자가 먼저 눈에 들어온다.
 function blockStyle(kind: SpeechKind, colors: ThemeColors): React.CSSProperties | undefined {
   if (kind === "plain") return undefined;
   const common: React.CSSProperties = {
@@ -135,9 +139,9 @@ function blockStyle(kind: SpeechKind, colors: ThemeColors): React.CSSProperties 
     padding: "0.75em 0.9em",
   };
   if (kind === "talk") {
-    return { ...common, backgroundColor: colors.talkBg, color: colors.talkText, fontSize: "0.94em", fontWeight: 400 };
+    return { ...common, backgroundColor: colors.talkBg, color: colors.talkText, fontSize: "1.08em" };
   }
-  return { ...common, backgroundColor: colors.sayBg, color: colors.sayText, fontSize: "1.14em", fontWeight: 800 };
+  return { ...common, backgroundColor: colors.sayBg, color: colors.sayText, fontSize: "1.2em" };
 }
 
 // 루비 주석 팝업 - 보기 / 추가 / 수정 / 삭제 (QRModal 과 동일한 오버레이 패턴)
