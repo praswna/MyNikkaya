@@ -16,11 +16,11 @@ export function saveQuotesCache(quotes: Quote[]): void {
   } catch {}
 }
 
-async function fetchCSV(url: string, timeoutMs = 8000): Promise<string> {
+async function fetchCSV(url: string, timeoutMs = 8000, cache: RequestCache = "no-store"): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    const response = await fetch(url, { cache, signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.text();
   } finally {
@@ -28,9 +28,13 @@ async function fetchCSV(url: string, timeoutMs = 8000): Promise<string> {
   }
 }
 
-// 저장소에 함께 실려 있는 CSV (매일 시트에서 갱신된다)
+// 저장소에 함께 실려 있는 CSV (매일 시트에서 갱신된다).
+//
+// 주소에 시각을 붙이거나 no-store 를 쓰면 300KB 를 매번 새로 받는다.
+// 그냥 두면 브라우저가 "이거 바뀌었나요?" 하고 물어보고(ETag),
+// 그대로면 서버가 304 만 돌려주므로 받는 양이 0 이 된다. 바뀌었으면 그때 받는다.
 export async function loadBundledQuotes(): Promise<Quote[]> {
-  const csvText = await fetchCSV(`/quotes_export.csv?t=${Date.now()}`);
+  const csvText = await fetchCSV("/quotes_export.csv", 8000, "default");
   return parseGoogleSheetsCSV(csvText);
 }
 

@@ -32,6 +32,9 @@ const EDIT_BUTTON_ZONE = 44;                     // 본문 오른쪽 위 수정 
 // 화면을 그리기 직전에 자리를 맞춰야 튀지 않는다. 서버에서 그릴 때는 useEffect 로 둔다.
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+// 시트에 보낼 것. 이름표(id)를 알면 그것만, 모르면 옛 본문 전체로 행을 찾는다.
+type SavePayload = { id?: string; oldText?: string; newText: string };
+
 // 시트가 돌려준 까닭을 그대로 알려준다.
 // "동기화 실패" 한 줄만 뜨면 열쇠가 틀린 건지 행을 못 찾은 건지 알 수 없다.
 function sheetErrorMessage(error: unknown): string {
@@ -64,7 +67,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const isEditSyncingRef = useRef(false); // 시트에 저장 중인가 (안내문을 지울지 판단용)
-  const [pendingSave, setPendingSave] = useState<{ oldText: string; newText: string } | null>(null);
+  const [pendingSave, setPendingSave] = useState<SavePayload | null>(null);
   const [passwordWasRejected, setPasswordWasRejected] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -159,7 +162,7 @@ export default function Home() {
   }, [applyQuotes, setQuoteList]);
 
   // 시트에 저장. 서버가 암호를 요구하면(401) 하려던 저장을 담아 두고 암호를 묻는다.
-  const syncToSheet = useCallback(async (oldText: string, newText: string) => {
+  const syncToSheet = useCallback(async (payload: SavePayload) => {
     let failed = false;
     isEditSyncingRef.current = true;
     setSyncStatus("동기화 중...");
@@ -168,11 +171,11 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // 암호는 본문에 담는다 - 헤더(라틴-1)에는 한글 암호를 실을 수 없다
-        body: JSON.stringify({ oldText, newText, password: loadEditPassword() }),
+        body: JSON.stringify({ ...payload, password: loadEditPassword() }),
       });
       if (res.status === 401) {
         setPasswordWasRejected(loadEditPassword() !== "");
-        setPendingSave({ oldText, newText });
+        setPendingSave(payload);
         setSyncStatus("편집 암호가 필요합니다");
         return; // 암호를 받으면 이어서 다시 시도한다
       }
@@ -207,14 +210,18 @@ export default function Home() {
     // 1. 로컬 저장 - 메모리·경전 맵·캐시를 한꺼번에 맞춘다.
     //    예전에는 캐시가 이미 있을 때만 반영해서, 동기화 버튼을 한 번도 안 누른
     //    기기에서는 고친 내용이 다른 명언에 갔다 오면 되돌아가 있었다.
-    //    찾는 기준은 시트에 쓸 때와 같은 '본문 전체 일치' 다.
+    //    찾는 기준은 시트에서 행을 찾는 기준과 같게 둔다 (이름표 → 없으면 본문).
     setSyncStatus("저장 중...");
-    const nextQuotes = quotesRef.current.map((q) => (q.text === oldText ? updated : q));
+    const nextQuotes = quotesRef.current.map((q) =>
+      (updated.sheetId ? q.sheetId === updated.sheetId : q.text === oldText) ? updated : q);
     setQuoteList(nextQuotes);
     saveQuotesCache(nextQuotes);
 
-    // 2. 시트 동기화 (백그라운드)
-    syncToSheet(oldText, trimmed);
+    // 2. 시트 동기화 (백그라운드).
+    //    이름표를 알면 본문을 한 벌만 보낸다 (긴 경은 이것만으로 절반이 준다).
+    syncToSheet(updated.sheetId
+      ? { id: updated.sheetId, newText: trimmed }
+      : { oldText, newText: trimmed });
   }, [currentQuote, syncToSheet, setQuoteList]);
 
   // 암호를 받았으면 저장을 이어서 다시 시도한다
@@ -223,7 +230,7 @@ export default function Home() {
     const job = pendingSave;
     setPendingSave(null);
     setPasswordWasRejected(false);
-    if (job) syncToSheet(job.oldText, job.newText);
+    if (job) syncToSheet(job);
   }, [pendingSave, syncToSheet]);
 
   // 암호를 넣지 않으면 고친 내용은 이 기기에만 남는다 - 그 사실을 알려준다

@@ -2,7 +2,8 @@
 // 구글 시트 ↔ 앱 연결 (Apps Script 웹앱)
 //
 //   읽기: GET  …/exec?format=csv          → 명언 탭을 모두 합쳐 CSV 한 장으로
-//   쓰기: POST key, oldText, newText      → 본문이 똑같은 행을 찾아 덮어쓴다
+//   쓰기: POST key, id, newText           → id 로 행을 찾아 본문을 덮어쓴다
+//         (id 가 없는 옛 앱은 key, oldText, newText 로 보내온다)
 //
 // 명언 탭은 이름이 아니라 머리글로 가린다.
 // 1행이 "category | text" 인 탭이면 이름이 무엇이든 읽기·쓰기에 모두 포함된다.
@@ -21,6 +22,22 @@ function secretKey() {
   return PropertiesService.getScriptProperties().getProperty("SECRET_KEY");
 }
 
+// =============================================
+// id 열 (C열)
+//
+// 명언마다 붙어 다니는 이름표다. 사람이 적을 일은 없다 - 빈 칸은 읽을 때 채워진다.
+// 새 명언을 넣을 때는 category · text 두 칸만 쓰면 된다.
+//
+// 이게 있으면 저장할 때 본문을 통째로 보내지 않아도 되고(양이 절반으로 준다),
+// 시트에서도 본문을 다 읽어 대조하는 대신 id 열만 훑으면 된다.
+// 본문이 완전히 똑같은 명언이 둘 있어도 제 행을 찾아간다.
+// =============================================
+const ID_COLUMN = 3;
+
+function newId() {
+  return Utilities.getUuid().replace(/-/g, "").slice(0, 8);
+}
+
 function doGet(e) {
   const params = (e && e.parameter) || {};
   if (params.format === "csv") return buildCsv();
@@ -31,7 +48,7 @@ function doPost(e) {
   return handleRequest((e && e.parameter) || {});
 }
 
-// 1행이 category | text 인 탭만 명언 탭으로 본다
+// 1행이 category | text 인 탭만 명언 탭으로 본다 (C열이 있든 없든 상관없다)
 function targetSheets() {
   return SpreadsheetApp.getActiveSpreadsheet().getSheets().filter(function (sheet) {
     if (sheet.getLastRow() < 1 || sheet.getLastColumn() < 2) return false;
@@ -41,18 +58,60 @@ function targetSheets() {
   });
 }
 
+// 내용이 있는 행마다 id 를 하나씩 갖게 한다.
+// 이미 다 차 있으면 시트에 아무 것도 쓰지 않는다 (대개 이쪽으로 지나간다).
+function fillIds(sheet, rows) {
+  const ids = [];
+  const seen = {};
+  let changed = false;
+
+  for (let i = 0; i < rows.length; i++) {
+    if (i === 0) { ids.push("id"); continue; } // 머리글
+
+    const hasContent = String(rows[i][0]).trim() && String(rows[i][1]).trim();
+    const current = rows[i].length > ID_COLUMN - 1 ? String(rows[i][ID_COLUMN - 1]).trim() : "";
+
+    if (!hasContent) { ids.push(current); continue; } // 빈 행은 건드리지 않는다
+
+    if (current && !seen[current]) {
+      ids.push(current);
+      seen[current] = true;
+      continue;
+    }
+
+    // 비었거나 다른 행과 겹친다 (행을 복사해 붙인 경우) → 새로 매긴다
+    let fresh = newId();
+    for (let tries = 0; seen[fresh] && tries < 20; tries++) fresh = newId();
+    // 그래도 겹치면 한 글자씩 붙인다. 길어지므로 반드시 끝난다
+    // (여기까지 올 일은 없지만, 끝나지 않는 반복은 웹앱을 통째로 멈춘다)
+    while (seen[fresh]) fresh = fresh + "x";
+    ids.push(fresh);
+    seen[fresh] = true;
+    changed = true;
+  }
+
+  if (changed) {
+    const column = ids.map(function (id) { return [id]; });
+    sheet.getRange(1, ID_COLUMN, column.length, 1).setValues(column);
+    Logger.log("id 채움: " + sheet.getName());
+  }
+  return ids;
+}
+
 // 명언 탭을 시트 순서대로 이어 붙여 CSV 한 장으로 만든다 (머리글은 맨 위 한 줄만)
 function buildCsv() {
-  const lines = ["category,text"];
+  const lines = ["category,text,id"];
   const sheets = targetSheets();
 
   for (let s = 0; s < sheets.length; s++) {
     const rows = sheets[s].getDataRange().getValues();
+    const ids = fillIds(sheets[s], rows);
+
     for (let i = 1; i < rows.length; i++) { // 각 탭의 1행은 머리글이므로 건너뛴다
       const category = String(rows[i][0]).trim();
       const text = String(rows[i][1]);
       if (!category || !text.trim()) continue; // 빈 행은 버린다
-      lines.push(csvCell(category) + "," + csvCell(text));
+      lines.push(csvCell(category) + "," + csvCell(text) + "," + csvCell(ids[i]));
     }
   }
 
@@ -80,24 +139,22 @@ function handleRequest(params) {
       return buildResponse({ error: "Unauthorized" });
     }
 
+    const id = params.id;
     const oldText = params.oldText;
     const newText = params.newText;
 
-    if (!oldText || !newText) {
-      Logger.log("oldText 또는 newText 없음");
+    if (!newText || (!id && !oldText)) {
+      Logger.log("보낼 내용이 모자람");
       return buildResponse({ error: "Missing params" });
     }
 
-    // 명언 탭을 순서대로 훑어 본문이 똑같은 행을 찾는다
     const sheets = targetSheets();
     for (let s = 0; s < sheets.length; s++) {
-      const rows = sheets[s].getDataRange().getValues();
-      for (let i = 1; i < rows.length; i++) {
-        if (rows[i][1] === oldText) {
-          sheets[s].getRange(i + 1, 2).setValue(newText); // 1-based
-          Logger.log("저장 완료: " + sheets[s].getName() + " " + (i + 1) + "행");
-          return buildResponse({ success: true, sheet: sheets[s].getName(), row: i + 1 });
-        }
+      const found = id ? findById(sheets[s], id) : findByText(sheets[s], oldText);
+      if (found > 0) {
+        sheets[s].getRange(found, 2).setValue(newText);
+        Logger.log("저장 완료: " + sheets[s].getName() + " " + found + "행");
+        return buildResponse({ success: true, sheet: sheets[s].getName(), row: found });
       }
     }
 
@@ -108,6 +165,26 @@ function handleRequest(params) {
     Logger.log("에러: " + err.message);
     return buildResponse({ error: err.message });
   }
+}
+
+// id 로 찾기 - C열만 읽으면 되므로 본문을 통째로 불러오지 않는다
+function findById(sheet, id) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+  const ids = sheet.getRange(2, ID_COLUMN, lastRow - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]).trim() === String(id).trim()) return i + 2; // 1-based, 머리글 한 줄
+  }
+  return 0;
+}
+
+// 본문 전체가 같은 행 찾기 - id 를 아직 모르는 앱을 위해 남겨 둔다
+function findByText(sheet, oldText) {
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][1] === oldText) return i + 1;
+  }
+  return 0;
 }
 
 function buildResponse(data) {

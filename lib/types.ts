@@ -1,5 +1,6 @@
 export interface Quote {
-  id: string;
+  id: string;        // 화면에서 쓰는 임시 번호 (gs-1…) - 읽을 때마다 새로 매겨진다
+  sheetId?: string;  // 시트 C열의 이름표 - 저장할 때 이걸로 행을 찾는다
   text: string;
   category: string;
 }

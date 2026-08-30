@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   // 암호는 헤더가 아니라 본문에 담는다.
   // HTTP 헤더는 라틴-1 이라 한글 암호를 넣으면 브라우저가 요청 자체를 거부한다.
-  let body: { oldText?: unknown; newText?: unknown; password?: unknown };
+  let body: { id?: unknown; oldText?: unknown; newText?: unknown; password?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -52,15 +52,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { oldText, newText } = body;
-    if (typeof oldText !== "string" || typeof newText !== "string" || !oldText || !newText) {
+    const { id, oldText, newText } = body;
+    if (typeof newText !== "string" || !newText) {
       return NextResponse.json({ error: "Missing params" }, { status: 400 });
     }
 
     const formData = new URLSearchParams();
     formData.append("key", scriptKey);
-    formData.append("oldText", oldText);
     formData.append("newText", newText);
+
+    // 이름표(id)를 알면 그것만 보낸다 - 본문을 두 벌 보내지 않아도 된다.
+    // 아직 모르는 경우(옛 캐시, id 열이 없는 CSV)에는 본문 전체로 찾는다.
+    if (typeof id === "string" && id) {
+      formData.append("id", id);
+    } else if (typeof oldText === "string" && oldText) {
+      formData.append("oldText", oldText);
+    } else {
+      return NextResponse.json({ error: "Missing params" }, { status: 400 });
+    }
 
     const res = await fetch(scriptUrl, {
       method: "POST",
