@@ -32,6 +32,18 @@ const EDIT_BUTTON_ZONE = 44;                     // 본문 오른쪽 위 수정 
 // 화면을 그리기 직전에 자리를 맞춰야 튀지 않는다. 서버에서 그릴 때는 useEffect 로 둔다.
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+// 시트가 돌려준 까닭을 그대로 알려준다.
+// "동기화 실패" 한 줄만 뜨면 열쇠가 틀린 건지 행을 못 찾은 건지 알 수 없다.
+function sheetErrorMessage(error: unknown): string {
+  switch (error) {
+    case "Unauthorized": return "시트 열쇠가 맞지 않습니다 (APPS_SCRIPT_KEY)";
+    case "Server not configured": return "시트에 열쇠가 없습니다 (스크립트 속성 SECRET_KEY)";
+    case "Row not found": return "시트에서 이 명언을 찾지 못했습니다";
+    case "Missing params": return "보낼 내용이 비어 있습니다";
+    default: return typeof error === "string" && error ? error : "동기화 실패";
+  }
+}
+
 // 저장된 값이 비었거나 망가졌을 때를 대비한다
 function clamp(value: number, min: number, max: number, fallback: number): number {
   if (!Number.isFinite(value)) return fallback;
@@ -148,6 +160,7 @@ export default function Home() {
 
   // 시트에 저장. 서버가 암호를 요구하면(401) 하려던 저장을 담아 두고 암호를 묻는다.
   const syncToSheet = useCallback(async (oldText: string, newText: string) => {
+    let failed = false;
     isEditSyncingRef.current = true;
     setSyncStatus("동기화 중...");
     try {
@@ -164,14 +177,20 @@ export default function Home() {
         return; // 암호를 받으면 이어서 다시 시도한다
       }
       const data = await res.json();
-      if (!data.success) throw new Error(data.error ?? "Unknown error");
+      if (!data.success) {
+        setSyncStatus(sheetErrorMessage(data.error));
+        failed = true;
+        return;
+      }
       setSyncStatus("완료 ✓");
     } catch {
-      setSyncStatus("동기화 실패");
+      setSyncStatus("연결하지 못했습니다");
+      failed = true;
     } finally {
       isEditSyncingRef.current = false;
     }
-    setTimeout(() => setSyncStatus(null), 2000);
+    // 잘못됐다는 말은 조금 더 오래 띄운다 (2초면 놓친다)
+    setTimeout(() => setSyncStatus(null), failed ? 8000 : 2000);
   }, []);
 
   // 명언 원문 저장 (로컬 캐시 + 시트 동기화)
