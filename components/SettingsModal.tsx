@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Theme, ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 import { formatContentWidth } from "./SizeModal";
 
 interface Link {
@@ -104,6 +105,7 @@ export function SettingsModal({
   onSizeOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
+  useEscape(isOpen, onClose);
   useEffect(() => {
     if (!isOpen) return;
     fetch("/links.json").then((r) => r.json()).then(setLinks).catch(() => {});
@@ -116,8 +118,18 @@ export function SettingsModal({
     <>
       <div className="fixed inset-0 z-40" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="설정"
         className="fixed bottom-28 left-1/2 z-50 w-72 -translate-x-1/2 rounded-2xl p-5 shadow-2xl"
-        style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
+        style={{
+          backgroundColor: colors.bgSecondary,
+          border: `1px solid ${colors.border}`,
+          // 작은 화면(아이폰 SE 등)에서 창이 화면 위로 잘려 나가던 것을 막는다
+          maxHeight: "calc(100dvh - 8rem)",
+          overflowY: "auto",
+          overscrollBehavior: "contain",
+        }}
       >
         <h2 className="mb-5 text-center text-sm font-semibold tracking-wide" style={{ color: colors.textMuted }}>설정</h2>
 

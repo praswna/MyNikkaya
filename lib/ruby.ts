@@ -190,7 +190,8 @@ export function withNote(text: string, seg: RubySegment, note: string): string {
   const clean = sanitizeNote(note);
   const ruby = seg.rubyRaw ?? "";
   const inner = clean ? `${ruby}^${NEW_NOTE_REF}` : ruby;
-  const nextBody = body.slice(0, seg.braceStart) + `{${inner}}` + body.slice(seg.braceEnd);
+  // 루비도 주석도 없으면 중괄호째 지운다 (안 그러면 본문에 "{}" 가 남는다)
+  const nextBody = body.slice(0, seg.braceStart) + (inner ? `{${inner}}` : "") + body.slice(seg.braceEnd);
 
   return rebuildNotes(nextBody, notes, clean);
 }
@@ -284,4 +285,19 @@ export function highlightSource(text: string): SourceToken[] {
   if (blockStart !== -1) pushToken(tokens, text.slice(blockStart), "note");
 
   return tokens;
+}
+
+// 색칠한 조각을 줄 단위로 묶는다.
+// 화면에서 줄마다 따로 그리면, 글자를 하나 칠 때 그 줄만 다시 그려도 된다.
+// (경 하나가 4만 자에 조각이 2,500개라 통째로 다시 그리면 타자가 밀린다)
+export function highlightSourceLines(text: string): SourceToken[][] {
+  const lines: SourceToken[][] = [[]];
+  for (const token of highlightSource(text)) {
+    const parts = token.text.split("\n");
+    parts.forEach((part, i) => {
+      if (i > 0) lines.push([]);
+      if (part) lines[lines.length - 1].push({ text: part, kind: token.kind });
+    });
+  }
+  return lines;
 }

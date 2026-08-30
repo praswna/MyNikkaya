@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyNikkaya
 
-## Getting Started
+불교 경전을 읽는 웹앱. 구글 시트에 담아 둔 경전을 한 편씩 꺼내 보고,
+팔리어 루비와 주석을 얹어 읽고, 그 자리에서 고칠 수 있다.
+수행 종(15분·30분·1시간)도 들어 있다.
 
-First, run the development server:
+- 사이트: https://my-nikkaya.vercel.app
+- 스택: Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 (Vercel 배포)
+
+## 개발
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # 배포 전 확인
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+명언 데이터는 `public/quotes_export.csv` 에 함께 실려 있어서, 환경변수 없이도
+읽기는 그대로 된다. 시트에서 가져오기·시트에 저장하기만 설정이 필요하다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 환경변수
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env.example` 을 `.env.local` 로 복사해 채운다. 배포에서는 Vercel 환경변수에 넣는다.
 
-## Learn More
+| 이름 | 쓰임 |
+|---|---|
+| `GOOGLE_SHEETS_URL` | 시트에서 명언 읽기 (`…/exec?format=csv`) |
+| `APPS_SCRIPT_URL` | 시트에 저장하기 (`…/exec`) |
+| `APPS_SCRIPT_KEY` | Apps Script 스크립트 속성 `SECRET_KEY` 와 같은 값 |
+| `EDIT_PASSWORD` | 앱에서 본문을 고칠 때 물어보는 암호 |
 
-To learn more about Next.js, take a look at the following resources:
+뒤의 셋 중 하나라도 비어 있으면 저장 기능은 꺼진다. 설정하지 않은 곳에서
+실수로 운영 시트를 고치지 않게 하기 위해서다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**주소도 키도 코드에 적지 않는다.** 이 저장소는 공개다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 더 읽을 것
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `CLAUDE_GUIDE.md` — 마크업 문법, 구글 시트 구조, 작업 절차
+- `APPS_SCRIPT.gs` — 시트 쪽 웹앱 (구글 Apps Script 에 붙여 넣는 코드)

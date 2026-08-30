@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { parseRubyText, splitNoteBlock, withNote } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 import { RubySegment } from "@/lib/types";
 
 interface RubyTextProps {
@@ -136,6 +137,7 @@ function NoteModal({
   // 주석이 없는 단어를 누른 경우엔 바로 입력 화면으로 연다
   const [isEditing, setIsEditing] = useState(editable && !seg.note);
   const [draft, setDraft] = useState(seg.note ?? "");
+  useEscape(true, onClose);
 
   const buttonBase = "flex-1 rounded-xl py-2.5 text-sm font-medium";
   const subtleStyle = { backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` };
@@ -149,6 +151,9 @@ function NoteModal({
         onClick={onClose}
       />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${seg.content} 주석`}
         className="fixed left-1/2 top-1/2 z-50 w-[88vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >
@@ -215,9 +220,12 @@ function NoteModal({
 }
 
 export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: RubyTextProps) {
-  // 글 끝 각주 블록은 본문으로 그리지 않고, 번호를 실제 주석으로 바꿔 넣는다
-  const { body, notes } = splitNoteBlock(text);
-  const segments = parseRubyText(body, notes);
+  // 글 끝 각주 블록은 본문으로 그리지 않고, 번호를 실제 주석으로 바꿔 넣는다.
+  // 글이 그대로면 다시 훑지 않는다 (긴 경은 조각이 수천 개다).
+  const segments = useMemo(() => {
+    const { body, notes } = splitNoteBlock(text);
+    return parseRubyText(body, notes);
+  }, [text]);
   const [activeSeg, setActiveSeg] = useState<RubySegment | null>(null);
 
   // 명언이 바뀌면 열려 있던 주석 팝업은 닫기 (렌더 중 상태 조정 패턴)

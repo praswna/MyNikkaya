@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 
 // 가로 크기 조절 범위 (px)
 // PC 처럼 화면이 넓을 때 화면 전체가 양옆으로 퍼지는 것을 막는다.
@@ -29,14 +30,23 @@ interface SizeModalProps {
 export function SizeModal({
   isOpen, onClose, fontScale, onFontScaleChange, contentWidth, onContentWidthChange, colors,
 }: SizeModalProps) {
+  useEscape(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="크기 조절"
         className="fixed bottom-28 left-1/2 z-50 w-72 -translate-x-1/2 rounded-2xl p-5 shadow-2xl"
-        style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
+        style={{
+          backgroundColor: colors.bgSecondary,
+          border: `1px solid ${colors.border}`,
+          maxHeight: "calc(100dvh - 8rem)",
+          overflowY: "auto",
+        }}
       >
         {/* 글자 크기 */}
         <div className="flex items-center justify-between mb-3">

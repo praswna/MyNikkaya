@@ -10,11 +10,16 @@
 // 잠깐 빼두고 싶으면 그 탭의 머리글을 "_category" 처럼 바꿔 놓으면 된다.
 //
 // 고친 뒤에는 [배포 관리 → 편집(연필) → 버전: 새 버전 → 배포] 로 올린다.
-// 새 배포를 만들면 URL 이 바뀌므로, 그때는 app/api/sync-sheet/route.ts 의
-// APPS_SCRIPT_URL 과 각 환경변수도 같이 고쳐야 한다.
+// 새 배포를 만들면 URL 이 바뀌므로, 그때는 Vercel 환경변수와
+// GitHub 저장소 시크릿의 주소도 같이 고쳐야 한다 (CLAUDE_GUIDE.md 참고).
 // =============================================
 
-const SECRET_KEY = "my-nikkaya-2024"; // 쓰기에만 필요 (읽기는 열려 있다)
+// 쓰기 키는 코드에 적지 않는다 - 이 파일은 공개 저장소에 그대로 올라간다.
+// Apps Script 편집기 → [프로젝트 설정 → 스크립트 속성] 에 SECRET_KEY 로 넣는다.
+// 속성이 없으면 쓰기는 아예 막힌다 (읽기는 열려 있다).
+function secretKey() {
+  return PropertiesService.getScriptProperties().getProperty("SECRET_KEY");
+}
 
 function doGet(e) {
   const params = (e && e.parameter) || {};
@@ -23,7 +28,6 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  Logger.log("doPost e.parameter: " + JSON.stringify(e && e.parameter));
   return handleRequest((e && e.parameter) || {});
 }
 
@@ -64,9 +68,14 @@ function csvCell(value) {
 
 function handleRequest(params) {
   try {
-    Logger.log("params: " + JSON.stringify(params));
+    // 키와 본문은 로그에 남기지 않는다 (실행 기록에 그대로 쌓인다)
+    const key = secretKey();
+    if (!key) {
+      Logger.log("스크립트 속성 SECRET_KEY 가 없어 쓰기를 막았습니다");
+      return buildResponse({ error: "Server not configured" });
+    }
 
-    if (params.key !== SECRET_KEY) {
+    if (params.key !== key) {
       Logger.log("키 불일치");
       return buildResponse({ error: "Unauthorized" });
     }

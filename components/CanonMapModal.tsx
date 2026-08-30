@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 import {
   CANON,
   buildCanonIndex,
@@ -24,6 +25,7 @@ export function CanonMapModal({ isOpen, onClose, quotes, onSelectQuote, colors }
   const index = useMemo(() => buildCanonIndex(quotes), [quotes]);
   const [expanded, setExpanded] = useState<Set<string> | null>(null);
   const [ownedOnly, setOwnedOnly] = useState(true);
+  useEscape(isOpen, onClose);
 
   // 처음 열릴 때는 보유한 경이 있는 가지만 펼쳐 둔다
   const openIds = expanded ?? expandedIdsFor(index);
@@ -126,6 +128,9 @@ export function CanonMapModal({ isOpen, onClose, quotes, onSelectQuote, colors }
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="불교 경전 맵"
       className="fixed inset-0 z-[60] flex flex-col"
       style={{
         backgroundColor: colors.bg,

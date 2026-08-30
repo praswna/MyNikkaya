@@ -8,7 +8,13 @@ export interface QuoteLoadResult {
   source: QuoteLoadSource;
 }
 
-const STORAGE_KEY = "quotes_cache";
+export const QUOTES_CACHE_KEY = "quotes_cache";
+
+export function saveQuotesCache(quotes: Quote[]): void {
+  try {
+    localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify(quotes));
+  } catch {}
+}
 
 async function fetchCSV(url: string, timeoutMs = 8000): Promise<string> {
   const controller = new AbortController();
@@ -22,11 +28,17 @@ async function fetchCSV(url: string, timeoutMs = 8000): Promise<string> {
   }
 }
 
+// 저장소에 함께 실려 있는 CSV (매일 시트에서 갱신된다)
+export async function loadBundledQuotes(): Promise<Quote[]> {
+  const csvText = await fetchCSV(`/quotes_export.csv?t=${Date.now()}`);
+  return parseGoogleSheetsCSV(csvText);
+}
+
 // 앱 시작 시: localStorage → 로컬 CSV 순서로 로드
 export async function loadQuotes(): Promise<QuoteLoadResult> {
   // localStorage 확인
   try {
-    const cached = localStorage.getItem(STORAGE_KEY);
+    const cached = localStorage.getItem(QUOTES_CACHE_KEY);
     if (cached) {
       const quotes = JSON.parse(cached) as Quote[];
       if (quotes.length > 0) {
@@ -38,9 +50,7 @@ export async function loadQuotes(): Promise<QuoteLoadResult> {
   }
 
   // 로컬 CSV 폴백
-  const csvText = await fetchCSV(`/quotes_export.csv?t=${Date.now()}`);
-  const quotes = parseGoogleSheetsCSV(csvText);
-  return { quotes, source: "fallback-csv" };
+  return { quotes: await loadBundledQuotes(), source: "fallback-csv" };
 }
 
 // 우측 버튼: Google Sheets에서 가져와서 localStorage에 저장
@@ -55,7 +65,7 @@ export async function syncFromGoogleSheets(): Promise<QuoteLoadResult> {
   }
 
   // localStorage에 저장
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(quotes));
+  saveQuotesCache(quotes);
 
   return { quotes, source: "google-sheets" };
 }

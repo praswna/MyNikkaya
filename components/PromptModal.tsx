@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 
 interface PromptModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export function PromptModal({ isOpen, onClose, colors }: PromptModalProps) {
     }
   });
   const [copied, setCopied] = useState(false);
+  useEscape(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -78,7 +80,13 @@ export function PromptModal({ isOpen, onClose, colors }: PromptModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col p-4" style={{ backgroundColor: colors.bg }}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="번역 프롬프트"
+      className="fixed inset-0 z-30 flex flex-col p-4"
+      style={{ backgroundColor: colors.bg }}
+    >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold" style={{ color: colors.textMuted }}>번역 프롬프트</h2>

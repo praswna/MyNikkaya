@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { ThemeColors } from "@/lib/theme";
+import { useEscape } from "@/lib/use-escape";
 
 interface QRModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ const SITE_URL = "https://my-nikkaya.vercel.app";
 
 export function QRModal({ isOpen, onClose, colors }: QRModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEscape(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
@@ -37,6 +39,9 @@ export function QRModal({ isOpen, onClose, colors }: QRModalProps) {
         onClick={onClose}
       />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="QR 코드"
         className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4"
         style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}
       >
