@@ -13,10 +13,10 @@ export const THEMES = {
     bg: "#2E2B28",              // 메인 배경색
     bgSecondary: "#3A3630",     // 카드/팝업 배경색
     border: "#3A3630",          // 테두리 색상
-    text: "#AFA290",            // 본문 텍스트 색상 (평문 - 대화와 같은 색)
+    text: "#90887A",            // 본문 텍스트 색상 (평문 - 대화보다 한 걸음 뒤)
     textMuted: "#B8A898",       // 보조 텍스트 (카테고리, 안내문 등)
-    textEmphasis: "#D4B896",    // 루비 베이스 강조 색상
-    textBold: "#E5C88A",        // [[ ]] 굵게 강조 색상
+    textEmphasis: "#D9C496",    // 루비 베이스 강조 색상
+    textBold: "#FFDA8A",        // [[ ]] 제목 색상
     categorySelected: "#7A6E62", // 선택된 카테고리 배경색
     categorySelectedText: "#F0D080", // 선택된 카테고리 텍스트 색상
     categoryBorder: "#4A4438",  // 카테고리 테두리 색상
@@ -26,9 +26,9 @@ export const THEMES = {
     rubyText: "#B8A898",        // 루비 텍스트(위첨자) 색상
     scrollThumb: "#4A4438",     // 스크롤바 색상
     talkBg: "#353230",          // 대화 판 바탕 (> < )
-    talkText: "#AFA290",                 // 대화 글자색 (평문과 같은 색)
+    talkText: "#AFA290",        // 대화 글자색 (평문보다 한 걸음 앞)
     sayBg: "#3B362F",           // 부처님 말씀 판 바탕 (>> <<)
-    sayText: "#FFE6AE",                  // 말씀 글자색 (채도를 올려 앞으로)
+    sayText: "#D2C6AD",         // 부처님 말씀 글자색
   },
   light: {
     bg: "#E5DED4",              // 메인 배경색
@@ -47,9 +47,9 @@ export const THEMES = {
     rubyText: "#7A6248",        // 루비 텍스트(위첨자) 색상
     scrollThumb: "#C4A882",     // 스크롤바 색상
     talkBg: "#DED7CE",          // 대화 판 바탕 (> < )
-    talkText: "#6E5C48",                 // 대화 글자색 (평문과 같은 색)
+    talkText: "#6E5C48",        // 대화 글자색 (평문과 같은 색)
     sayBg: "#E0D7C8",           // 부처님 말씀 판 바탕 (>> <<)
-    sayText: "#3A2600",                  // 말씀 글자색 (짙은 금갈색 - 채도를 올려 앞으로)
+    sayText: "#3A2600",         // 부처님 말씀 글자색 (짙은 금갈색)
   },
 } as const;
 
