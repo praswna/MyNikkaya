@@ -5,13 +5,15 @@ export interface TextMetrics {
   lineHeight: string;
 }
 
-// 주석은 화면에 흐르지 않으므로 글자 크기 계산에서 뺀다
-// (글 끝 각주 블록 전체와, 옛 형식의 중괄호 안 주석 모두)
+// 화면에 흐르지 않는 것은 글자 크기 계산에서 뺀다
+// (글 끝 각주 블록, 옛 형식의 중괄호 안 주석, 말씀·대화 표시)
 function withoutNotes(text: string): string {
-  return splitNoteBlock(text).body.replace(/\{([^}]*)\}/g, (whole, inner: string) => {
-    const caret = inner.indexOf("^");
-    return caret === -1 ? whole : `{${inner.slice(0, caret)}}`;
-  });
+  return splitNoteBlock(text).body
+    .replace(/\{([^}]*)\}/g, (whole, inner: string) => {
+      const caret = inner.indexOf("^");
+      return caret === -1 ? whole : `{${inner.slice(0, caret)}}`;
+    })
+    .replace(/[<>]/g, "");
 }
 
 export function getTextMetrics(text: string): TextMetrics {

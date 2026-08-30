@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { parseRubyText, splitNoteBlock, withNote } from "@/lib/ruby";
+import { parseRubyText, splitNoteBlock, splitSpeechBlocks, withNote, type SpeechKind } from "@/lib/ruby";
 import { ThemeColors } from "@/lib/theme";
 import { useEscape } from "@/lib/use-escape";
 import { RubySegment } from "@/lib/types";
@@ -120,6 +120,30 @@ function renderSegment(
   return <span key={i}>{seg.content}</span>;
 }
 
+// 평문 · 대화 · 부처님 말씀.
+// 대화와 말씀은 판에 담아 누가 말하는지 한눈에 보이게 한다.
+// 한 덩어리(> … < / >> … <<)가 판 하나다 - 안에 문단이 여럿이면 그대로 이어진다.
+function blockStyle(kind: SpeechKind, colors: ThemeColors): React.CSSProperties | undefined {
+  if (kind === "plain") return undefined;
+  const common: React.CSSProperties = {
+    display: "block",
+    borderRadius: "16px",
+    margin: "1.2em 0",
+    padding: "0.75em 0.9em",
+  };
+  if (kind === "talk") {
+    return { ...common, backgroundColor: colors.talkBg, color: colors.talkText, fontSize: "0.95em" };
+  }
+  return {
+    ...common,
+    backgroundColor: colors.sayBg,
+    border: `1px solid ${colors.sayBorder}`,
+    color: colors.sayText,
+    fontSize: "1.05em",
+    fontWeight: 700,
+  };
+}
+
 // 루비 주석 팝업 - 보기 / 추가 / 수정 / 삭제 (QRModal 과 동일한 오버레이 패턴)
 function NoteModal({
   seg,
@@ -221,10 +245,15 @@ function NoteModal({
 
 export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: RubyTextProps) {
   // 글 끝 각주 블록은 본문으로 그리지 않고, 번호를 실제 주석으로 바꿔 넣는다.
+  // 그 다음 평문 · 대화 · 말씀 덩어리로 나눈다.
   // 글이 그대로면 다시 훑지 않는다 (긴 경은 조각이 수천 개다).
-  const segments = useMemo(() => {
+  const blocks = useMemo(() => {
     const { body, notes } = splitNoteBlock(text);
-    return parseRubyText(body, notes);
+    return splitSpeechBlocks(body).map((block) => ({
+      kind: block.kind,
+      // 원문에서의 위치를 그대로 넘겨야 주석을 되짚을 때 어긋나지 않는다
+      segments: parseRubyText(block.text, notes, block.offset),
+    }));
   }, [text]);
   const [activeSeg, setActiveSeg] = useState<RubySegment | null>(null);
 
@@ -245,7 +274,8 @@ export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: R
 
   return (
     <>
-      <p
+      {/* 판(div)을 담아야 하므로 p 가 아니라 div 를 쓴다 */}
+      <div
         className="text-center font-semibold w-full"
         style={{
           fontSize,
@@ -257,8 +287,13 @@ export function RubyText({ text, fontSize, lineHeight, colors, onTextChange }: R
           overflowX: "hidden",
         }}
       >
-        {segments.map((seg, i) => renderSegment(seg, i, colors, false, editable, setActiveSeg))}
-      </p>
+        {blocks.map((block, i) => {
+          const children = block.segments.map((seg, j) => renderSegment(seg, j, colors, false, editable, setActiveSeg));
+          return block.kind === "plain"
+            ? <span key={i}>{children}</span>
+            : <div key={i} style={blockStyle(block.kind, colors)}>{children}</div>;
+        })}
+      </div>
       {activeSeg && (
         <NoteModal
           key={`${activeSeg.braceStart}-${activeSeg.note ?? ""}`}

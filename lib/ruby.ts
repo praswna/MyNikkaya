@@ -48,6 +48,90 @@ export function splitNoteBlock(text: string): SplitNotes {
   return { body: text.slice(0, at).trimEnd(), notes, blockStart: at };
 }
 
+// =============================================
+// 평문 · 대화 · 부처님 말씀
+//
+//   평문은 그냥 쓴다.
+//   > 다른 사람의 말 <
+//   >> 부처님 말씀 <<
+//
+// 여는 표시부터 닫는 표시까지가 한 덩어리다. 그 안에 문단이 여럿이면
+// 판 하나로 이어진다. 닫는 표시를 빠뜨리면 글 끝에서 저절로 닫힌다.
+// 표시가 없는 글은 예전 그대로 보인다.
+// =============================================
+
+export type SpeechKind = "plain" | "talk" | "say";
+
+const SPEECH_MARKS: { kind: SpeechKind; open: string; close: string }[] = [
+  { kind: "say", open: ">>", close: "<<" },   // 긴 것을 먼저 본다
+  { kind: "talk", open: ">", close: "<" },
+];
+
+interface SpeechRun {
+  kind: SpeechKind;
+  runStart: number;      // 표시 기호까지 포함한 구간 (이어 붙이면 원문 그대로)
+  runEnd: number;
+  contentStart: number;  // 표시 기호와 앞뒤 공백을 뺀 알맹이
+  contentEnd: number;
+}
+
+function trimmedRange(body: string, from: number, to: number): [number, number] {
+  let start = from;
+  let end = to;
+  while (start < end && /\s/.test(body[start])) start++;
+  while (end > start && /\s/.test(body[end - 1])) end--;
+  return [start, end];
+}
+
+// 원문을 빈틈없이 훑는다 (runStart~runEnd 를 이어 붙이면 원문과 같아야 한다)
+function scanSpeechRuns(body: string): SpeechRun[] {
+  const runs: SpeechRun[] = [];
+  let plainStart = 0;
+  let i = 0;
+
+  const pushPlain = (end: number) => {
+    if (end <= plainStart) return;
+    const [start, stop] = trimmedRange(body, plainStart, end);
+    runs.push({ kind: "plain", runStart: plainStart, runEnd: end, contentStart: start, contentEnd: stop });
+  };
+
+  while (i < body.length) {
+    if (body[i] !== ">") { i++; continue; }
+
+    const mark = SPEECH_MARKS.find((m) => body.startsWith(m.open, i))!;
+    pushPlain(i);
+
+    const from = i + mark.open.length;
+    const closeAt = body.indexOf(mark.close, from);
+    const to = closeAt === -1 ? body.length : closeAt;
+    const runEnd = closeAt === -1 ? body.length : closeAt + mark.close.length;
+    const [start, stop] = trimmedRange(body, from, to);
+
+    runs.push({ kind: mark.kind, runStart: i, runEnd, contentStart: start, contentEnd: stop });
+    i = runEnd;
+    plainStart = i;
+  }
+
+  pushPlain(body.length);
+  return runs;
+}
+
+export interface SpeechBlock {
+  kind: SpeechKind;
+  text: string;   // 판 안에 들어갈 글 (표시 기호는 뺀 것)
+  offset: number; // 이 글이 원문에서 시작하는 위치 (주석을 되짚는 데 쓴다)
+}
+
+export function splitSpeechBlocks(body: string): SpeechBlock[] {
+  return scanSpeechRuns(body)
+    .map((run) => ({
+      kind: run.kind,
+      text: body.slice(run.contentStart, run.contentEnd),
+      offset: run.contentStart,
+    }))
+    .filter((block) => block.text.length > 0);
+}
+
 // offset: 이 조각이 원문 전체에서 시작하는 위치 (주석 추가/수정 시 원문을 되짚기 위함)
 // notes: 각주 번호를 실제 주석으로 바꿔 넣기 위한 표
 function parseInner(text: string, offset: number, notes?: Map<string, string>): RubySegment[] {
@@ -107,7 +191,7 @@ function parseInner(text: string, offset: number, notes?: Map<string, string>): 
   return segments;
 }
 
-export function parseRubyText(text: string, notes?: Map<string, string>): RubySegment[] {
+export function parseRubyText(text: string, notes?: Map<string, string>, baseOffset = 0): RubySegment[] {
   // 먼저 **bold** 를 분리
   const segments: RubySegment[] = [];
   const boldPattern = /\[\[([^\]]+)\]\]/g;
@@ -120,11 +204,11 @@ export function parseRubyText(text: string, notes?: Map<string, string>): RubySe
     // bold 이전 텍스트는 일반 파싱
     if (matchStart > lastIndex) {
       const before = text.slice(lastIndex, matchStart);
-      segments.push(...parseInner(before, lastIndex, notes));
+      segments.push(...parseInner(before, baseOffset + lastIndex, notes));
     }
 
     // bold 내부도 루비/링크/줄바꿈 파싱 ("[[" 두 글자만큼 원문 위치를 밀어준다)
-    const innerSegments = parseInner(match[1], matchStart + 2, notes);
+    const innerSegments = parseInner(match[1], baseOffset + matchStart + 2, notes);
     segments.push({
       type: "bold",
       content: match[1],
@@ -136,7 +220,7 @@ export function parseRubyText(text: string, notes?: Map<string, string>): RubySe
 
   // 나머지 텍스트
   if (lastIndex < text.length) {
-    segments.push(...parseInner(text.slice(lastIndex), lastIndex, notes));
+    segments.push(...parseInner(text.slice(lastIndex), baseOffset + lastIndex, notes));
   }
 
   return segments;
@@ -210,7 +294,9 @@ export type SourceTokenKind =
   | "ruby"   // { } 안의 루비
   | "note"   // { } 안에서 ^ 뒤의 주석
   | "bold"   // [[ ]] 로 감싼 부분
-  | "link";  // http(s) 주소
+  | "link"   // http(s) 주소
+  | "talk"   // > < 로 감싼 다른 사람의 말
+  | "say";   // >> << 로 감싼 부처님 말씀
 
 export interface SourceToken {
   text: string;
@@ -263,24 +349,35 @@ function tokenizeInner(text: string, plain: SourceTokenKind, tokens: SourceToken
   pushToken(tokens, text.slice(lastIndex), plain);
 }
 
+// 굵게 표시 안팎을 훑어 조각으로 나눈다 (plain 자리에 말씀·대화 색이 들어온다)
+function tokenizeWithBold(text: string, plain: SourceTokenKind, tokens: SourceToken[]): void {
+  const boldPattern = /\[\[([^\]]+)\]\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldPattern.exec(text)) !== null) {
+    tokenizeInner(text.slice(lastIndex, match.index), plain, tokens);
+    pushToken(tokens, "[[", "bold");
+    tokenizeInner(match[1], "bold", tokens);
+    pushToken(tokens, "]]", "bold");
+    lastIndex = match.index + match[0].length;
+  }
+  tokenizeInner(text.slice(lastIndex), plain, tokens);
+}
+
 export function highlightSource(text: string): SourceToken[] {
   const tokens: SourceToken[] = [];
   // 각주 블록은 본문이 아니므로 통째로 옅게 (구분선 포함)
   const { blockStart } = splitNoteBlock(text);
   const body = blockStart === -1 ? text : text.slice(0, blockStart);
 
-  const boldPattern = /\[\[([^\]]+)\]\]/g;
-  let lastIndex = 0;
-  let match;
-
-  while ((match = boldPattern.exec(body)) !== null) {
-    tokenizeInner(body.slice(lastIndex, match.index), "plain", tokens);
-    pushToken(tokens, "[[", "bold");
-    tokenizeInner(match[1], "bold", tokens);
-    pushToken(tokens, "]]", "bold");
-    lastIndex = match.index + match[0].length;
+  // 말씀·대화 덩어리를 먼저 나눈다. 표시 기호(> < >> <<)도 그 색으로 보여
+  // 어디부터 어디까지가 한 판인지 고칠 때 눈에 들어온다.
+  for (const run of scanSpeechRuns(body)) {
+    pushToken(tokens, body.slice(run.runStart, run.contentStart), run.kind);
+    tokenizeWithBold(body.slice(run.contentStart, run.contentEnd), run.kind, tokens);
+    pushToken(tokens, body.slice(run.contentEnd, run.runEnd), run.kind);
   }
-  tokenizeInner(body.slice(lastIndex), "plain", tokens);
 
   if (blockStart !== -1) pushToken(tokens, text.slice(blockStart), "note");
 

@@ -23,6 +23,8 @@ function tokenColor(kind: SourceTokenKind, colors: ThemeColors): string {
     case "note": return colors.rubyText;
     case "bold": return colors.textBold;
     case "link": return colors.textEmphasis;
+    case "talk": return colors.talkText;
+    case "say": return colors.sayText;
     default: return colors.text;
   }
 }
