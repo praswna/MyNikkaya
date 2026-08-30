@@ -13,11 +13,14 @@ interface ColorModalProps {
 }
 
 // 색 조절.
-// 뒤를 가리지 않게 아래쪽에 두어, 고르는 대로 본문이 바뀌는 것이 바로 보인다.
-// 다크와 라이트는 따로 기억하므로, 지금 보고 있는 테마의 색만 고친다.
+//
+// 고르는 대로 본문이 바뀌는 것을 봐야 하므로, 화면을 덮지 않는 것이 가장 중요하다.
+// 오른쪽 아래 구석에 작게 두고, 묶음은 한 번에 하나만 펼친다.
+// 그래야 위쪽에 제목과 첫 줄들이 남는다.
 export function ColorModal({ isOpen, onClose, theme, colors }: ColorModalProps) {
   const overrides = useColorOverrides();
   const { setColor, resetTheme } = useColorActions();
+  const [openGroup, setOpenGroup] = useState(COLOR_GROUPS[0].title);
   const [copied, setCopied] = useState(false);
 
   useEscape(isOpen, onClose);
@@ -45,88 +48,100 @@ export function ColorModal({ isOpen, onClose, theme, colors }: ColorModalProps) 
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="색 조절"
-        className="fixed bottom-28 left-1/2 z-50 w-80 -translate-x-1/2 rounded-2xl p-4 shadow-2xl"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          border: `1px solid ${colors.border}`,
-          maxHeight: "calc(100dvh - 8rem)",
-          overflowY: "auto",
-          overscrollBehavior: "contain",
-        }}
-      >
-        <div className="mb-1 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold" style={{ color: colors.text }}>색 조절</h2>
-          <span className="text-[11px]" style={{ color: colors.textMuted }}>
-            {theme === "dark" ? "다크" : "라이트"}
-            {changedCount > 0 && ` · ${changedCount}개 바꿈`}
+    <div
+      role="dialog"
+      aria-modal="false"
+      aria-label="색 조절"
+      className="fixed z-50 flex flex-col rounded-2xl shadow-2xl"
+      style={{
+        // 오른쪽 아래 구석 - 위쪽은 본문이 보이게 비워 둔다
+        right: "0.5rem",
+        bottom: "calc(env(safe-area-inset-bottom) + 6.5rem)",
+        width: "min(17rem, calc(100vw - 1rem))",
+        maxHeight: "46dvh",
+        backgroundColor: colors.bgSecondary,
+        border: `1px solid ${colors.border}`,
+      }}
+    >
+      {/* 머리 */}
+      <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
+        <h2 className="flex-1 text-xs font-semibold" style={{ color: colors.text }}>
+          색 조절
+          <span className="ml-1.5 font-normal" style={{ color: colors.textMuted }}>
+            {theme === "dark" ? "다크" : "라이트"}{changedCount > 0 && ` · ${changedCount}`}
           </span>
-        </div>
-        <p className="mb-3 text-[11px]" style={{ color: colors.textMuted }}>
-          지금 보고 있는 테마의 색을 고칩니다. 고르는 대로 바로 바뀝니다.
-        </p>
-
-        {COLOR_GROUPS.map((group) => (
-          <div key={group.title} className="mb-3">
-            <p className="mb-1 px-0.5 text-[11px] font-medium" style={{ color: colors.textMuted }}>
-              {group.title}
-            </p>
-            {group.fields.map((field) => {
-              const value = current[field.key];
-              const isChanged = value !== THEMES[theme][field.key];
-              return (
-                <label
-                  key={field.key}
-                  className="mb-1 flex items-center gap-2 rounded-lg px-2 py-1.5"
-                  style={{ backgroundColor: colors.bg }}
-                >
-                  <input
-                    type="color"
-                    value={value}
-                    onChange={(e) => setColor(theme, field.key, e.target.value.toUpperCase())}
-                    aria-label={field.label}
-                    className="h-7 w-7 shrink-0 cursor-pointer rounded"
-                    style={{ padding: 0, border: `1px solid ${colors.border}`, backgroundColor: "transparent" }}
-                  />
-                  <span className="min-w-0 flex-1 text-xs" style={{ color: colors.text }}>
-                    {field.label}
-                    {field.hint && (
-                      <span className="ml-1 text-[10px]" style={{ color: colors.textMuted }}>{field.hint}</span>
-                    )}
-                  </span>
-                  <span
-                    className="shrink-0 text-[10px] tabular-nums"
-                    style={{ color: isChanged ? colors.textBold : colors.textMuted }}
-                  >
-                    {value}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        ))}
-
-        <div className="mt-4 flex gap-2">
-          <button
-            onClick={() => resetTheme(theme)}
-            className="rounded-xl px-3 py-2.5 text-sm font-medium"
-            style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
-          >되돌리기</button>
-          <button
-            onClick={handleCopy}
-            className="flex-1 rounded-xl py-2.5 text-sm font-medium"
-            style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-          >{copied ? "복사됨 ✓" : "값 복사"}</button>
-        </div>
-        <p className="mt-2 text-[10px] leading-relaxed" style={{ color: colors.textMuted }}>
-          복사하면 다크·라이트 두 벌이 모두 담깁니다. 바꾼 것에는 표시가 붙습니다.
-        </p>
+        </h2>
+        <button
+          onClick={onClose}
+          aria-label="닫기"
+          className="flex h-6 w-6 items-center justify-center rounded-full"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted }}
+        >✕</button>
       </div>
-    </>
+
+      {/* 묶음 - 한 번에 하나만 펼친다 */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2" style={{ overscrollBehavior: "contain" }}>
+        {COLOR_GROUPS.map((group) => {
+          const isOpen = openGroup === group.title;
+          return (
+            <div key={group.title} className="mb-1">
+              <button
+                onClick={() => setOpenGroup(isOpen ? "" : group.title)}
+                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium"
+                style={{ color: isOpen ? colors.text : colors.textMuted, backgroundColor: isOpen ? colors.bg : "transparent" }}
+              >
+                <span className="w-2 text-[9px]">{isOpen ? "▾" : "▸"}</span>
+                <span className="flex-1">{group.title}</span>
+                <span className="flex gap-0.5">
+                  {group.fields.slice(0, 5).map((f) => (
+                    <span key={f.key} className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: current[f.key], border: `1px solid ${colors.border}` }} />
+                  ))}
+                </span>
+              </button>
+
+              {isOpen && group.fields.map((field) => {
+                const value = current[field.key];
+                const isChanged = value !== THEMES[theme][field.key];
+                return (
+                  <label key={field.key} className="mt-0.5 flex items-center gap-2 rounded-lg px-2 py-1">
+                    <input
+                      type="color"
+                      value={value}
+                      onChange={(e) => setColor(theme, field.key, e.target.value.toUpperCase())}
+                      aria-label={field.label}
+                      className="h-6 w-6 shrink-0 cursor-pointer rounded"
+                      style={{ padding: 0, border: `1px solid ${colors.border}`, backgroundColor: "transparent" }}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: colors.text }}>
+                      {field.label}
+                      {field.hint && <span className="ml-1 text-[9px]" style={{ color: colors.textMuted }}>{field.hint}</span>}
+                    </span>
+                    <span className="shrink-0 text-[9px] tabular-nums"
+                      style={{ color: isChanged ? colors.textBold : colors.textMuted }}>
+                      {value}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 발 */}
+      <div className="flex gap-1.5 px-2 pb-2 pt-1.5" style={{ borderTop: `1px solid ${colors.border}` }}>
+        <button
+          onClick={() => resetTheme(theme)}
+          className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >되돌리기</button>
+        <button
+          onClick={handleCopy}
+          className="flex-1 rounded-lg py-1.5 text-[11px] font-medium"
+          style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+        >{copied ? "복사됨 ✓ 두 테마 모두" : "값 복사"}</button>
+      </div>
+    </div>
   );
 }
