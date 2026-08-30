@@ -21,10 +21,9 @@ export const THEMES = {
     buttonIcon: "#B8A898",      // 하단 버튼 아이콘 + 스플래시 법륜 색상
     rubyText: "#B8A898",        // 루비 텍스트(위첨자) 색상
     scrollThumb: "#4A4438",     // 스크롤바 색상
-    talkBg: "rgba(255,255,255,0.05)",    // 대화 판 바탕 (> < )
-    talkText: "#C9BCAC",                 // 대화 글자색
-    sayBg: "rgba(229,200,138,0.13)",     // 부처님 말씀 판 바탕 (>> <<)
-    sayBorder: "rgba(229,200,138,0.30)", // 말씀 판 테두리
+    talkBg: "rgba(255,255,255,0.035)",   // 대화 판 바탕 (> < )
+    talkText: "#C3B6A6",                 // 대화 글자색
+    sayBg: "rgba(229,200,138,0.07)",     // 부처님 말씀 판 바탕 (>> <<)
     sayText: "#FFF3DC",                  // 말씀 글자색
   },
   light: {
@@ -43,11 +42,10 @@ export const THEMES = {
     buttonIcon: "#5C4A32",      // 하단 버튼 아이콘 + 스플래시 법륜 색상
     rubyText: "#7A6248",        // 루비 텍스트(위첨자) 색상
     scrollThumb: "#C4A882",     // 스크롤바 색상
-    talkBg: "rgba(0,0,0,0.045)",         // 대화 판 바탕 (> < )
-    talkText: "#5C4A32",                 // 대화 글자색
-    sayBg: "rgba(139,105,20,0.11)",      // 부처님 말씀 판 바탕 (>> <<)
-    sayBorder: "rgba(139,105,20,0.28)",  // 말씀 판 테두리
-    sayText: "#3A2C0E",                  // 말씀 글자색
+    talkBg: "rgba(0,0,0,0.03)",          // 대화 판 바탕 (> < )
+    talkText: "#6B5540",                 // 대화 글자색
+    sayBg: "rgba(139,105,20,0.06)",      // 부처님 말씀 판 바탕 (>> <<)
+    sayText: "#2A1F08",                  // 말씀 글자색
   },
 } as const;
 
@@ -70,6 +68,5 @@ export type ThemeColors = {
   talkBg: string;
   talkText: string;
   sayBg: string;
-  sayBorder: string;
   sayText: string;
 };
