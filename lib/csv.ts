@@ -77,6 +77,7 @@ export function parseGoogleSheetsCSV(csvText: string): Quote[] {
     const category = row[0].trim();
     const text = row[1]; // 본문은 trim 안 함 (줄바꿈 보존)
     const sheetId = row.length > 2 ? row[2].trim() : ""; // 옛 두 칸짜리 CSV 도 그대로 읽는다
+    const updatedAt = row.length > 3 ? row[3].trim() : ""; // 고친 날짜 열이 없던 때의 CSV 도 그대로 읽는다
 
     if (text && text.trim() && category) {
       quotes.push({
@@ -84,6 +85,7 @@ export function parseGoogleSheetsCSV(csvText: string): Quote[] {
         text: text,
         category: category,
         ...(sheetId ? { sheetId } : {}),
+        ...(updatedAt ? { updatedAt } : {}),
       });
     }
   }

@@ -1,5 +1,10 @@
 # 불교 경전 앱 작업 가이드 (for Claude)
 
+> 2026-09-15: study-note 기능 통합 이후의 기능·설정은 `README.md`,
+> `SETUP.md`, `docs/study-note-port.md`를 먼저 참고한다. 아래는 기존 경전 기능의 설명이다.
+> 현재 배색은 단일 `app_colors_v2` 설정이고, 주석은 두 번 눌러 연다.
+> 번역 프롬프트는 `TranslationPromptModal.tsx`, AI 프롬프트는 `PromptModal.tsx`에 있다.
+
 ## 프로젝트 개요
 - **이름**: MyNikkaya (불교 경전 웹앱)
 - **기술 스택**: Next.js 16 + React 19 + TypeScript + Tailwind CSS 4

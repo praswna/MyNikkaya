@@ -47,7 +47,7 @@ export function EditPasswordModal({ isOpen, wasRejected, onSubmit, onCancel, col
       >
         <p className="text-center text-sm font-semibold" style={{ color: colors.text }}>편집 암호</p>
         <p className="mt-1.5 text-center text-xs" style={{ color: wasRejected ? colors.textBold : colors.textMuted }}>
-          {wasRejected ? "암호가 맞지 않습니다. 다시 넣어주세요." : "고친 내용을 시트에 저장하려면 암호가 필요합니다."}
+          {wasRejected ? "암호가 맞지 않습니다. 다시 넣어주세요." : "글을 시트에 저장하려면 암호가 필요합니다."}
         </p>
 
         <input

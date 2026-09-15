@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Theme, ThemeColors } from "@/lib/theme";
+import { ThemeColors } from "@/lib/theme";
 import { useEscape } from "@/lib/use-escape";
 import { formatContentWidth } from "./SizeModal";
 
@@ -13,53 +13,31 @@ interface Link {
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  theme: Theme;
-  onThemeToggle: () => void;
   fontScale: number;
   contentWidth: number;
   onSizeOpen: () => void;
   onColorOpen: () => void;
-  onMeditationStart: (duration: number) => void;
+  onColorPinsOpen: () => void;
   onQROpen: () => void;
   onEditOpen: () => void;
+  onSyncHelpOpen: () => void;
+  onSheetSetupOpen: () => void;
   onPromptOpen: () => void;
+  onQuizAdminOpen: () => void;
   onCanonMapOpen: () => void;
+  onTranslationOpen: () => void;
+  onMeditationStart: (duration: number) => void;
+  onThemeChange: (theme: "dark" | "light") => void;
   colors: ThemeColors;
 }
 
-const BELL_FILES: { duration: number; label: string }[] = [
-  { duration: 15 * 60, label: "15분" },
-  { duration: 30 * 60, label: "30분" },
-  { duration: 60 * 60, label: "1시간" },
-];
-
 // 라인아트 SVG 아이콘들
 const Icons = {
-  sun: (color: string) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  ),
-  moon: (color: string) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
-  ),
   text: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="4 7 4 4 20 4 20 7" />
       <line x1="9" y1="20" x2="15" y2="20" />
       <line x1="12" y1="4" x2="12" y2="20" />
-    </svg>
-  ),
-  bell: (color: string) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   ),
   edit: (color: string) => (
@@ -93,24 +71,30 @@ const Icons = {
       <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
     </svg>
   ),
-  map: (color: string) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-      <line x1="8" y1="2" x2="8" y2="18" />
-      <line x1="16" y1="6" x2="16" y2="22" />
-    </svg>
-  ),
   link: (color: string) => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
     </svg>
   ),
+  setup: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
+  prompt: (color: string) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16v12H8l-4 4V4z" />
+      <line x1="8" y1="9" x2="16" y2="9" />
+      <line x1="8" y1="13" x2="13" y2="13" />
+    </svg>
+  ),
 };
 
 export function SettingsModal({
-  isOpen, onClose, theme, onThemeToggle, fontScale, contentWidth,
-  onSizeOpen, onColorOpen, onMeditationStart, onQROpen, onEditOpen, onPromptOpen, onCanonMapOpen, colors,
+  isOpen, onClose, fontScale, contentWidth,
+  onSizeOpen, onColorOpen, onColorPinsOpen, onQROpen, onEditOpen, onSyncHelpOpen, onSheetSetupOpen, onPromptOpen, onQuizAdminOpen, onCanonMapOpen, onTranslationOpen, onMeditationStart, onThemeChange, colors,
 }: SettingsModalProps) {
   const [links, setLinks] = useState<Link[]>([]);
   useEscape(isOpen, onClose);
@@ -120,7 +104,6 @@ export function SettingsModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
-  const isLight = theme === "light";
 
   return (
     <>
@@ -141,30 +124,28 @@ export function SettingsModal({
       >
         <h2 className="mb-5 text-center text-sm font-semibold tracking-wide" style={{ color: colors.textMuted }}>설정</h2>
 
-        {/* 테마 토글 */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isLight ? Icons.sun(colors.text) : Icons.moon(colors.text)}
-            <span className="text-sm font-medium" style={{ color: colors.text }}>
-              {isLight ? "라이트 모드" : "다크 모드"}
-            </span>
-          </div>
-          <button
-            onClick={onThemeToggle}
-            style={{
-              position: "relative", width: "44px", height: "24px", borderRadius: "12px",
-              backgroundColor: isLight ? colors.categorySelected : colors.categoryBorder,
-              transition: "background-color 0.2s", padding: 0, border: "none", cursor: "pointer",
-            }}
-          >
-            <span style={{
-              position: "absolute", top: "2px", left: "2px", width: "20px", height: "20px",
-              borderRadius: "10px", backgroundColor: colors.text, boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-              transform: isLight ? "translateX(20px)" : "translateX(0)", transition: "transform 0.2s",
-            }} />
-          </button>
+        <div className="mb-4 flex gap-2">
+          {(["dark", "light"] as const).map((theme) => (
+            <button key={theme} onClick={() => onThemeChange(theme)} className="flex-1 rounded-xl py-2 text-sm" style={{ backgroundColor: colors.bg, color: colors.text }}>
+              {theme === "dark" ? "다크 배색" : "라이트 배색"}
+            </button>
+          ))}
         </div>
-
+        <div className="mb-4">
+          <p className="mb-2 text-xs" style={{ color: colors.textMuted }}>수행</p>
+          <div className="flex gap-2">
+            {[15, 30, 60].map((minutes) => (
+              <button key={minutes} onClick={() => { onMeditationStart(minutes * 60); onClose(); }} className="flex-1 rounded-xl py-2.5 text-sm" style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}>
+                {minutes === 60 ? "1시간" : `${minutes}분`}
+              </button>
+            ))}
+          </div>
+        </div>
+        {[{ label: "불교 경전 맵", open: onCanonMapOpen }, { label: "번역 프롬프트", open: onTranslationOpen }].map(({ label, open }) => (
+          <button key={label} onClick={() => { open(); onClose(); }} className="mb-2 w-full rounded-xl px-3 py-2.5 text-left text-sm" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}>
+            {label}
+          </button>
+        ))}
         {/* 크기 조절 - 글자 크기 + 가로 크기 (넓은 PC 에서 화면이 양옆으로 퍼지는 것도 여기서 줄인다) */}
         <button
           onClick={() => { onSizeOpen(); onClose(); }}
@@ -180,26 +161,6 @@ export function SettingsModal({
           </span>
         </button>
 
-        {/* 수행 종 */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            {Icons.bell(colors.textMuted)}
-            <span className="text-xs font-medium" style={{ color: colors.textMuted }}>수행</span>
-          </div>
-          <div className="flex gap-2">
-            {BELL_FILES.map((file) => (
-              <button
-                key={file.duration}
-                onClick={() => { onMeditationStart(file.duration); onClose(); }}
-                className="flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors"
-                style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-              >
-                {file.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* 색 조절 */}
         <button
           onClick={() => { onColorOpen(); onClose(); }}
@@ -210,14 +171,15 @@ export function SettingsModal({
           <span>색 조절</span>
         </button>
 
-        {/* 불교 경전 맵 */}
+        {/* 색 조절 2 - 색 종류마다 작은 판을 본문의 그 글자 옆에 한꺼번에 띄운다 */}
         <button
-          onClick={() => { onCanonMapOpen(); onClose(); }}
-          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          onClick={() => { onColorPinsOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center gap-2 px-3"
           style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
         >
-          {Icons.map(colors.text)}
-          <span>불교 경전 맵</span>
+          {Icons.palette(colors.text)}
+          <span>색 조절 2</span>
+          <span className="ml-auto text-xs" style={{ color: colors.textMuted }}>글 옆에서 ›</span>
         </button>
 
         {/* 내용 수정 */}
@@ -230,29 +192,53 @@ export function SettingsModal({
           <span>내용 수정</span>
         </button>
 
-        {/* 번역 프롬프트 버튼 */}
+        {/* AI 프롬프트 - 마크업 규칙을 AI 에게 그대로 붙여 넣을 수 있게 안내문을 보여준다 */}
         <button
           onClick={() => { onPromptOpen(); onClose(); }}
           className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
           style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-          <span>번역 프롬프트</span>
+          {Icons.prompt(colors.textMuted)}
+          <span>AI 프롬프트</span>
+        </button>
+
+        <button
+          onClick={() => { onQuizAdminOpen(); onClose(); }}
+          className="mb-2 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          {Icons.prompt(colors.textMuted)}
+          <span>시험문제 출제</span>
         </button>
 
         {/* QR 코드 */}
         <button
           onClick={onQROpen}
-          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center gap-2 px-3"
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
           style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
         >
           {Icons.qr(colors.textMuted)}
           <span>QR 코드</span>
+        </button>
+
+        {/* 시트 동기화 사용법 */}
+        <button
+          onClick={() => { onSyncHelpOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-2 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          {Icons.sync(colors.textMuted)}
+          <span>시트 동기화 사용법</span>
+        </button>
+
+        {/* 시트 연결 설정 안내 - 처음 연결할 때만 필요 (읽기 전용 앱이면 안 봐도 된다) */}
+        <button
+          onClick={() => { onSheetSetupOpen(); onClose(); }}
+          className="w-full rounded-xl py-2.5 text-sm font-medium transition-colors mb-4 flex items-center gap-2 px-3"
+          style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+        >
+          {Icons.setup(colors.textMuted)}
+          <span>시트 연결 설정 안내</span>
         </button>
 
         {/* 링크 */}

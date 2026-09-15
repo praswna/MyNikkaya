@@ -13,7 +13,7 @@
 import { splitNoteBlock } from "./ruby";
 
 // 원문에서 실제로 눈에 보이는(=읽기 화면에서 본문으로 흐르는) 글자만 센다.
-// 루비 주석 {…} 안쪽, 굵게 표시 [[ ]], 말씀·대화 표시 > < 는
+// 루비 주석 {…} 안쪽, 굵게 표시 [[ ]] 와 부분강조 표시 [ ], 말씀·대화 표시 > < 는
 // 본문 흐름을 차지하지 않으므로 뺀다.
 function visiblePrefixLengths(text: string): number[] {
   const lengths = new Array<number>(text.length + 1);
@@ -38,6 +38,9 @@ function visiblePrefixLengths(text: string): number[] {
     if (ch === "]" && text[i + 1] === "]") continue;
     if (ch === "[" && text[i - 1] === "[") continue;
     if (ch === "]" && text[i - 1] === "]") continue;
+    // 겹대괄호가 아닌 홑겹 [ ] 는 부분강조 표시라 마찬가지로 본문에 흐르지 않는다.
+    if (ch === "[" && text[i + 1] !== "[" && text[i - 1] !== "[") continue;
+    if (ch === "]" && text[i + 1] !== "]" && text[i - 1] !== "]") continue;
 
     visible++;
   }
