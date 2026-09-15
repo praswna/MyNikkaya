@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DharmaWheel } from "./DharmaWheel";
 import type { ThemeColors } from "@/lib/theme";
 
 interface LoadingBarProps {
@@ -71,7 +72,10 @@ export function LoadingBar({ progress, done, onFinished, colors }: LoadingBarPro
   const percent = Math.round(shown * 100);
 
   return (
-    <div className="flex h-screen items-center justify-center" style={{ backgroundColor: colors.bg }}>
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-8" style={{ backgroundColor: colors.bg }}>
+      <div role="img" aria-label="법륜">
+        <DharmaWheel size={160} color={colors.buttonIcon} />
+      </div>
       <div
         className="h-[3px] w-40 overflow-hidden rounded-full"
         style={{ backgroundColor: colors.border }}

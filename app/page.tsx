@@ -216,8 +216,6 @@ export default function Home() {
   // 마지막으로 보여 준 안내문. 안내문이 없어질 때 글자를 지워 버리면 그 순간 툭 사라지므로,
   // 글자는 그대로 두고 투명도만 낮춰 순번과 같이 스르르 사라지게 한다.
   const [lastSyncStatus, setLastSyncStatus] = useState<string | null>(null);
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashFading, setSplashFading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isNewQuoteOpen, setIsNewQuoteOpen] = useState(false);
   const [editAnchor, setEditAnchor] = useState(0);
@@ -232,13 +230,6 @@ export default function Home() {
   // 설정 > 색 조절에서 고른 색을 기본 색 위에 덮는다
   const colorOverrides = useColorOverrides();
   const colors = useMemo(() => mergeColors(colorOverrides), [colorOverrides]);
-
-  // 스플래시 타이머
-  useEffect(() => {
-    const fadeTimer = setTimeout(() => setSplashFading(true), 1500);
-    const doneTimer = setTimeout(() => setShowSplash(false), 2200);
-    return () => { clearTimeout(fadeTimer); clearTimeout(doneTimer); };
-  }, []);
 
   // 상태바 색상 동적 변경
   useEffect(() => {
@@ -836,26 +827,6 @@ export default function Home() {
           시작하게 한다 - 그래야 튕겨 돌아오는(overshoot) 정도가 클릭할 때마다 쌓이지 않는다.
           인라인 style 의 transition 보다 우선해야 하므로 !important 를 쓴다. */}
       <style>{`.spring-btn:active { transition-duration: 0s !important; }`}</style>
-      {showSplash && <div
-        className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
-        style={{
-          backgroundColor: colors.bg,
-          opacity: splashFading ? 0 : 1,
-          transition: "opacity 0.7s ease-out",
-          pointerEvents: splashFading ? "none" : "auto",
-        }}
-      >
-        <style>{`@keyframes pop-in-place { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }`}</style>
-        <div style={{ animation: "pop-in-place 0.55s cubic-bezier(0.45, 0, 0.55, 1) infinite", transformOrigin: "center" }}>
-          <svg width="160" height="160" viewBox="0 0 100 100">
-            <path
-              d="M50 6C54 32 68 46 94 50C68 54 54 68 50 94C46 68 32 54 6 50C32 46 46 32 50 6Z"
-              fill={colors.buttonIcon}
-            />
-          </svg>
-        </div>
-      </div>}
-
       {/* 전자책처럼 본문 기둥 바로 바깥 가장자리에서 이전·다음 글로 넘긴다.
           화면 가장자리(0)가 아니라 본문 기둥의 실제 가장자리(navEdgeOffset)에 붙인다 -
           넓은 PC 에서 본문이 가운데로 좁혀지면 화살표도 화면 끝까지 멀어지지 않고
