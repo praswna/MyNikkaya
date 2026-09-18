@@ -2,16 +2,17 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { THEMES } from "@/lib/theme";
 
-// 화면을 그리기 전에 저장해 둔 테마를 입힌다.
-// 이게 없으면 라이트 모드인 사람도 앱을 열 때마다 어두운 화면이 한 번 번쩍인다
-// (서버는 어느 테마인지 알 수 없어 늘 다크로 그려 보낸다).
-// 설정 > 색 조절에서 바탕색을 바꿔 두었으면 그 색을 쓴다.
-const THEME_SCRIPT = `try{
+// 첫 화면에도 저장된 바탕색을 적용한다. 예전 모드 설정은 호환용으로만 읽는다.
+const COLOR_SCRIPT = `try{
+var raw=localStorage.getItem("app_colors_v2");
+var c="${THEMES.dark.bg}";
+var o;
+if(raw!==null){o=JSON.parse(raw);}else{
 var t=localStorage.getItem("app_theme")==="light"?"light":"dark";
-var c=t==="light"?"${THEMES.light.bg}":"${THEMES.dark.bg}";
-var o=JSON.parse(localStorage.getItem("app_colors")||"{}");
-if(o[t]&&o[t].bg)c=o[t].bg;
-document.documentElement.dataset.theme=t;
+c=t==="light"?"${THEMES.light.bg}":c;
+try{o=JSON.parse(localStorage.getItem("app_colors")||"{}");o=o&&o[t];}catch(e){}
+}
+if(o&&typeof o.bg==="string"&&/^#[0-9a-f]{6}$/i.test(o.bg))c=o.bg;
 document.documentElement.style.backgroundColor=c;
 }catch(e){}`;
 
@@ -51,7 +52,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: COLOR_SCRIPT }} />
       </head>
       <body className="h-full antialiased">{children}</body>
     </html>

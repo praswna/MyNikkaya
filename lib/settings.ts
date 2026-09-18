@@ -3,7 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 // =============================================
-// localStorage 에 담아 두는 설정값 (테마·글자 크기·가로 크기)
+// localStorage 에 담아 두는 설정값 (글자 크기·가로 크기)
 //
 // useSyncExternalStore 로 읽는다. effect 안에서 setState 로 뒤늦게 채우면
 // 첫 화면이 한 번 잘못 그려졌다가 바뀌는데, 이 방식은 그 단계가 없다.

@@ -3,157 +3,193 @@
 import { useState } from "react";
 import { ThemeColors } from "@/lib/theme";
 import { useEscape } from "@/lib/use-escape";
+import { useStoredSetting } from "@/lib/settings";
+import { PROMPT_SETTING_KEY, PROMPT_STORAGE_KEY, SETTINGS_GROUP } from "@/lib/settings-sync";
 
 interface PromptModalProps {
   isOpen: boolean;
   onClose: () => void;
   colors: ThemeColors;
+  // 시트의 "설정" 탭에 담는다 - 프롬프트는 기기 취향이 아니라 모두 같아야 하는 값이라,
+  // 여기서 저장해 두면 다른 기기에서는 동기화할 때 저절로 따라온다.
+  onSheetSave: (group: string, entries: Record<string, string>) => void;
 }
 
-// =============================================
-// 기본 번역 프롬프트 (수정 가능)
-// =============================================
-const DEFAULT_PROMPT = `당신은 불교 경전 전문 편집자입니다. 아래 텍스트를 다음 규칙에 따라 처리하세요.
+// AI(챗GPT·클로드 등)에게 그대로 붙여 넣는 안내문.
+// 이 앱의 마크업 규칙 중 제목·부분강조·루비 세 가지만 설명하고,
+// 맨 끝에 주제를 적을 자리를 남겨 둔다 - AI가 답을 이 서식에 맞춰 바로 써 주게 하기 위함이다.
+export const AI_PROMPT_TEMPLATE = `아래 규칙에 맞춰서만 정리해줘. 규칙 밖의 다른 설명은 붙이지 말고, 규칙대로 쓴 내용만 출력해줘.
 
-언어 처리 원칙
-입력이 영문이면 한국어로 번역합니다. 입력이 이미 한국어면 번역하지 않고 형식만 변환합니다.
+[[ ]] : 제목. 줄 전체를 감싼다. 글 맨 앞에 한 번만 쓴다. 굵고 강조색으로 보인다.
+[ ] : 부분강조. [[ ]]보다 한 단계 약한 강조. 핵심 문장이나 문단에 쓴다.
+낱말{설명} : 루비. 낱말 바로 뒤에 공백 없이 { } 를 붙이면 그 낱말 위에 작은 글씨로
+  뜻·한자·원어를 보여준다.
+  - 낱말에 공백이 있으면 "-"로 이어 쓴다 (예: 헌법-개정{...}). 화면에는 다시
+    빈칸으로 보이니 신경 쓰지 않아도 된다.
+  - 콤마로 여러 뜻을 나란히 달 수 있다: 낱말{한자,영어}
 
-핵심 용어 특수 포맷
-핵심적인 용어가 등장할 때는 반드시 단어{팔리어, 의미 설명} 형식으로 표현합니다. 한자 표기는 일절 사용하지 않습니다. 팔리어가 단독으로 노출되는 일 없이 항상 한글 단어와 결합하도록 합니다. 두 단어 이상으로 이루어진 용어는 이치에-맞는-생각{yoniso manasikāra, 여리작의} 처럼 하이픈으로 연결합니다.
-
-의미 설명 간결화
-중괄호 안의 마지막 자리 의미 설명은 군더더기를 걷어내고 뜻이 명확하게 전달되도록 작성하되, 중괄호 내부에서는 자연스러운 띄어쓰기를 허용합니다.
-
-괄호 통일
-소괄호, 대괄호 등 모든 괄호는 일절 사용하지 않습니다. 부연 설명이 필요한 모든 상황에서는 오직 중괄호 {}만 사용합니다. 단, 제목부를 지정하는 이중 대괄호 [[ ]]는 예외입니다.
-
-번호 구분 배제
-숫자 번호 매김, 로마자 구분, 기호 일절 사용 금지. 본문은 흐르는 줄글로 유지합니다.
-
-제목 구조
-원문의 제목 틀은 유지하되, [[ 제목 ]] 형식으로 감쌉니다. 수평선 기호 ---는 사용하지 않습니다.
-올바른 예시: [[ Ⅳ 무아{anattā, 자아없음}의 세계 ]]
-
-한자 처리
-기존 텍스트에 한자 병기가 있으면 한자는 제거하고 해당 용어에 팔리어와 의미 설명을 붙여 단어{팔리어, 의미 설명} 형식으로 대체합니다.
-
-화자 구분
-서술하는 평문은 아무 표시 없이 그대로 씁니다.
-부처님이 아닌 사람의 말은 여는 > 와 닫는 < 로 감쌉니다.
-부처님의 말씀은 여는 >> 와 닫는 << 로 감쌉니다.
-한 사람의 말이 여러 문단으로 이어지면 문단마다 붙이지 말고 그 전체를 한 번만 감쌉니다.
-세존께서 말씀하셨습니다 처럼 말을 이끄는 서술은 감싸지 않습니다.
 예시:
-이와 같이 나는 들었습니다.
-> 세존이시여 참으로 놀랍습니다. <
-세존께서 말씀하셨습니다.
->> 아난다여 그렇게 말하지 말라.
+[[헌법 개정 절차{憲法改正節次}]]
 
-이 연기는 깊고 깊게 보인다. <<`;
+헌법 개정은 국회의 발의와 국민투표를 거쳐야 확정됩니다.
 
-const STORAGE_KEY_PROMPT = "translate_prompt";
+[개정 절차는 국회 의결과 국민투표, 두 단계로 이루어집니다]
 
-export function PromptModal({ isOpen, onClose, colors }: PromptModalProps) {
-  const [prompt, setPrompt] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY_PROMPT) ?? DEFAULT_PROMPT;
-    } catch {
-      return DEFAULT_PROMPT;
-    }
-  });
-  const [copied, setCopied] = useState(false);
+국회 의결{헌법 제130조}: 국회 재적의원 3분의 2 이상의 찬성으로 의결합니다.
+
+---
+이제 위 규칙대로 아래 주제를 정리해줘:
+(여기에 주제를 적어주세요)`;
+
+export function PromptModal({ isOpen, onClose, colors, onSheetSave }: PromptModalProps) {
   useEscape(isOpen, onClose);
-
+  const [copied, setCopied] = useState(false);
+  // 시트에 프롬프트를 담아 뒀으면 그것을 보여준다 (동기화할 때 받아 둔다).
+  // 프롬프트는 크기·색과 달리 기기 취향이 아니라 모두 같아야 하므로, 여기만 저절로 따라간다.
+  // 시트에 없으면 코드에 담긴 기본 안내문을 쓴다.
+  const [stored, setStored] = useStoredSetting(PROMPT_STORAGE_KEY, "", (raw) => raw);
+  // 고치는 동안에는 원본을 건드리지 않고 초안만 들고 있다가, 저장할 때 한 번에 바꾼다
+  const [draft, setDraft] = useState<string | null>(null);
+  const template = stored.trim() ? stored : AI_PROMPT_TEMPLATE;
   if (!isOpen) return null;
+
+  const isEditing = draft !== null;
+
+  const saveDraft = () => {
+    const next = (draft ?? "").trim();
+    if (!next) return;
+    // 기본 안내문과 같아졌으면 아예 비워 둔다 - 나중에 기본 문구가 바뀌면 그것을 따라간다
+    setStored(next === AI_PROMPT_TEMPLATE.trim() ? "" : next);
+    setDraft(null);
+  };
+
+  const handleSheetSave = () => {
+    onSheetSave(SETTINGS_GROUP.prompt, { [PROMPT_SETTING_KEY]: template });
+  };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(prompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(template);
     } catch {
-      // fallback
       const ta = document.createElement("textarea");
-      ta.value = prompt;
+      ta.value = template;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      ta.remove();
     }
-  };
-
-  const handleSave = () => {
-    try { localStorage.setItem(STORAGE_KEY_PROMPT, prompt); } catch {}
-    onClose();
-  };
-
-  const handleReset = () => {
-    setPrompt(DEFAULT_PROMPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="번역 프롬프트"
-      className="fixed inset-0 z-30 flex flex-col p-4"
-      style={{ backgroundColor: colors.bg }}
-    >
-      {/* 헤더 */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold" style={{ color: colors.textMuted }}>번역 프롬프트</h2>
-<button onClick={onClose} style={{ color: colors.textMuted, fontSize: "1.2rem" }}>✕</button>
-      </div>
-
-      {/* 프롬프트 textarea */}
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        className="flex-1 rounded-xl p-4 resize-none outline-none text-sm"
+    <>
+      <div className="fixed inset-0 z-40" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="AI 프롬프트"
+        className="fixed left-1/2 top-1/2 z-50 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-5 shadow-2xl"
         style={{
           backgroundColor: colors.bgSecondary,
-          color: colors.text,
           border: `1px solid ${colors.border}`,
-          lineHeight: "1.7",
+          // 높이를 내용에 맡기면 고칠 때 창이 확 줄어든다 - 보여 주는 <pre> 는 글만큼
+          // 길어지지만 입력칸(textarea)은 제 높이가 두어 줄뿐이라서다.
+          // 프롬프트는 어차피 긴 글이므로 높이를 정해 두고, 좁은 화면에서만 줄인다.
+          height: "34rem",
+          maxHeight: "calc(100dvh - 8rem)",
+          display: "flex",
+          flexDirection: "column",
         }}
-      />
+      >
+        <h2 className="mb-1 text-center text-sm font-semibold tracking-wide" style={{ color: colors.textMuted }}>
+          AI 프롬프트
+        </h2>
+        <p className="mb-4 text-center text-xs" style={{ color: colors.textMuted }}>
+          {isEditing
+            ? "고친 뒤 저장하면 이 기기에 남는다. 시트에 저장해 두면 다른 기기에서도 동기화할 때 따라온다."
+            : <>복사해서 챗GPT·클로드 같은 AI에게 붙여 넣고, 맨 끝에 물어볼 주제를 적으면
+              답을 이 앱 서식([[ ]], {"{ }"} 등)에 맞춰 써 준다.</>}
+        </p>
 
-      {/* 버튼 */}
-      <div className="flex gap-2 mt-3">
-        <button
-          onClick={handleReset}
-          className="rounded-xl px-4 py-3 text-sm font-medium"
-          style={{ backgroundColor: colors.bgSecondary, color: colors.textMuted, border: `1px solid ${colors.border}` }}
-        >초기화</button>
-        <button
-          onClick={handleCopy}
-          className="flex items-center justify-center gap-1 rounded-xl px-4 py-3 text-sm font-medium"
-          style={{
-            backgroundColor: copied ? colors.categorySelected : colors.bgSecondary,
-            color: copied ? colors.categorySelectedText : colors.textMuted,
-            border: `1px solid ${colors.border}`,
-          }}
-        >
-          {copied ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-            </svg>
-          )}
-          {copied ? "복사됨" : "복사"}
-        </button>
-        <button
-          onClick={handleSave}
-          className="flex-1 rounded-xl py-3 text-sm font-medium"
-          style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
-        >저장 후 닫기</button>
+        {isEditing ? (
+          <textarea
+            autoFocus
+            value={draft ?? ""}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-label="AI 프롬프트 원문"
+            className="min-h-0 flex-1 resize-none rounded-xl p-3 text-xs leading-relaxed outline-none"
+            style={{
+              backgroundColor: colors.bg,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              fontFamily: "inherit",
+              overscrollBehavior: "contain",
+            }}
+          />
+        ) : (
+          <pre
+            className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap rounded-xl p-3 text-xs leading-relaxed"
+            style={{
+              backgroundColor: colors.bg,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              fontFamily: "inherit",
+              overscrollBehavior: "contain",
+            }}
+          >
+            {template}
+          </pre>
+        )}
+
+        {isEditing ? (
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => setDraft(AI_PROMPT_TEMPLATE)}
+              className="rounded-xl px-3 py-2.5 text-sm font-medium"
+              style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+            >기본 문구</button>
+            <button
+              onClick={() => setDraft(null)}
+              className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+              style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+            >취소</button>
+            <button
+              onClick={saveDraft}
+              disabled={!(draft ?? "").trim()}
+              className="flex-1 rounded-xl py-2.5 text-sm font-semibold disabled:opacity-50"
+              style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+            >저장</button>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDraft(template)}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+                style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+              >수정</button>
+              <button
+                onClick={handleSheetSave}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+                style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+              >시트에 저장</button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+                style={{ backgroundColor: colors.bg, color: colors.textMuted, border: `1px solid ${colors.border}` }}
+              >닫기</button>
+              <button
+                onClick={handleCopy}
+                className="flex-1 rounded-xl py-2.5 text-sm font-medium"
+                style={{ backgroundColor: colors.categorySelected, color: colors.categorySelectedText }}
+              >{copied ? "복사됨 ✓" : "프롬프트 복사"}</button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

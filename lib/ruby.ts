@@ -7,7 +7,8 @@ import { RubySegment } from "./types";
 //   루비:   단어{한자,영어,번역}  → 단어 위에 작은 글씨
 //   주석:   단어{한자^1}            → ^ 뒤는 각주 번호, 실제 주석은 글 끝 블록에
 //          (옛 형식 단어{한자^설명} 도 그대로 읽는다)
-//   굵게:   [[텍스트]]            → 굵게 + 강조색 (textBold)
+//   굵게:   [[텍스트]]            → 굵게 + 강조색 (textBold, 가장 센 강조)
+//   부분강조: [텍스트]            → [[ ]] 보다 한 단계 약한 강조 (textEmphasis)
 //   링크:   https://...           → 자동 하이퍼링크 (40% 크기)
 //   줄바꿈: CSV 셀 안에서 엔터    → <br>
 
@@ -116,6 +117,24 @@ function scanSpeechRuns(body: string): SpeechRun[] {
   return runs;
 }
 
+// 판(대화·말씀)의 범위만 문자 위치로 뽑아 준다 - 본문 수정 화면에서 판 배경을
+// 어느 줄에 깔지 정할 때 쓴다. 조각(토큰)의 kind 로는 정확히 알 수 없다 - 판 안에
+// 루비 낱말이 있으면 그 조각은 "루비" 계열 색으로 바뀌어 "판" 표시가 사라지지만,
+// 그 줄은 여전히 판 안이다. 위치(문자 범위)로만 판단해야 어떤 마크업이 안에
+// 섞여 있어도 정확하다.
+export interface SpeechRange {
+  kind: SpeechKind;
+  start: number;
+  end: number;
+}
+
+export function scanSpeechRanges(text: string): SpeechRange[] {
+  const { body } = splitNoteBlock(text);
+  return scanSpeechRuns(body)
+    .filter((run) => run.kind !== "plain")
+    .map((run) => ({ kind: run.kind, start: run.runStart, end: run.runEnd }));
+}
+
 export interface SpeechBlock {
   kind: SpeechKind;
   text: string;   // 판 안에 들어갈 글 (표시 기호는 뺀 것)
@@ -191,6 +210,29 @@ function parseInner(text: string, offset: number, notes?: Map<string, string>): 
   return segments;
 }
 
+// [[ ]] 를 걷어낸 나머지에서 한 단계 약한 강조 [ ] 를 찾는다.
+// (겹대괄호는 이미 위에서 걷어냈으므로 여기 남는 "[" 는 언제나 홑겹이다)
+function parseEmphasis(text: string, offset: number, notes: Map<string, string> | undefined, out: RubySegment[]): void {
+  const pattern = /\[([^[\]]+)\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    const matchStart = match.index;
+    if (matchStart > lastIndex) {
+      out.push(...parseInner(text.slice(lastIndex, matchStart), offset + lastIndex, notes));
+    }
+    // "[" 한 글자만큼 원문 위치를 밀어준다
+    const innerSegments = parseInner(match[1], offset + matchStart + 1, notes);
+    out.push({ type: "emphasis", content: match[1], innerSegments });
+    lastIndex = matchStart + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    out.push(...parseInner(text.slice(lastIndex), offset + lastIndex, notes));
+  }
+}
+
 export function parseRubyText(text: string, notes?: Map<string, string>, baseOffset = 0): RubySegment[] {
   // 먼저 **bold** 를 분리
   const segments: RubySegment[] = [];
@@ -201,10 +243,9 @@ export function parseRubyText(text: string, notes?: Map<string, string>, baseOff
   while ((match = boldPattern.exec(text)) !== null) {
     const matchStart = match.index;
 
-    // bold 이전 텍스트는 일반 파싱
+    // bold 이전 텍스트는 [ ] 부분강조 → 일반 파싱 순서로 훑는다
     if (matchStart > lastIndex) {
-      const before = text.slice(lastIndex, matchStart);
-      segments.push(...parseInner(before, baseOffset + lastIndex, notes));
+      parseEmphasis(text.slice(lastIndex, matchStart), baseOffset + lastIndex, notes, segments);
     }
 
     // bold 내부도 루비/링크/줄바꿈 파싱 ("[[" 두 글자만큼 원문 위치를 밀어준다)
@@ -220,7 +261,7 @@ export function parseRubyText(text: string, notes?: Map<string, string>, baseOff
 
   // 나머지 텍스트
   if (lastIndex < text.length) {
-    segments.push(...parseInner(text.slice(lastIndex), baseOffset + lastIndex, notes));
+    parseEmphasis(text.slice(lastIndex), baseOffset + lastIndex, notes, segments);
   }
 
   return segments;
@@ -289,14 +330,15 @@ export function withNote(text: string, seg: RubySegment, note: string): string {
 // =============================================
 
 export type SourceTokenKind =
-  | "plain"  // 본문
-  | "base"   // 루비가 붙는 낱말
-  | "ruby"   // { } 안의 루비
-  | "note"   // { } 안에서 ^ 뒤의 주석
-  | "bold"   // [[ ]] 로 감싼 부분
-  | "link"   // http(s) 주소
-  | "talk"   // > < 로 감싼 다른 사람의 말
-  | "say";   // >> << 로 감싼 부처님 말씀
+  | "plain"     // 본문
+  | "base"      // 루비가 붙는 낱말
+  | "ruby"      // { } 안의 루비
+  | "note"      // { } 안에서 ^ 뒤의 주석
+  | "bold"      // [[ ]] 로 감싼 부분
+  | "emphasis"  // [ ] 로 감싼 부분 (bold 보다 한 단계 약한 강조)
+  | "link"      // http(s) 주소
+  | "talk"      // > < 로 감싼 다른 사람의 말
+  | "say";      // >> << 로 감싼 부처님 말씀
 
 export interface SourceToken {
   text: string;
@@ -332,7 +374,7 @@ function tokenizeInner(text: string, plain: SourceTokenKind, tokens: SourceToken
     const wordMatch = before.match(/(\S+)$/);
     const word = wordMatch ? wordMatch[1] : "";
     pushToken(tokens, word ? before.slice(0, before.length - word.length) : before, plain);
-    pushToken(tokens, word, plain === "bold" ? "bold" : "base");
+    pushToken(tokens, word, plain === "bold" || plain === "emphasis" ? plain : "base");
 
     const inner = match[1];
     const caret = inner.indexOf("^");
@@ -349,6 +391,22 @@ function tokenizeInner(text: string, plain: SourceTokenKind, tokens: SourceToken
   pushToken(tokens, text.slice(lastIndex), plain);
 }
 
+// [ ] 표시 안팎을 훑어 조각으로 나눈다 (겹대괄호는 이미 걷어낸 뒤라 홑겹만 남는다)
+function tokenizeWithEmphasis(text: string, plain: SourceTokenKind, tokens: SourceToken[]): void {
+  const pattern = /\[([^[\]]+)\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    tokenizeInner(text.slice(lastIndex, match.index), plain, tokens);
+    pushToken(tokens, "[", "emphasis");
+    tokenizeInner(match[1], "emphasis", tokens);
+    pushToken(tokens, "]", "emphasis");
+    lastIndex = match.index + match[0].length;
+  }
+  tokenizeInner(text.slice(lastIndex), plain, tokens);
+}
+
 // 굵게 표시 안팎을 훑어 조각으로 나눈다 (plain 자리에 말씀·대화 색이 들어온다)
 function tokenizeWithBold(text: string, plain: SourceTokenKind, tokens: SourceToken[]): void {
   const boldPattern = /\[\[([^\]]+)\]\]/g;
@@ -356,13 +414,13 @@ function tokenizeWithBold(text: string, plain: SourceTokenKind, tokens: SourceTo
   let match;
 
   while ((match = boldPattern.exec(text)) !== null) {
-    tokenizeInner(text.slice(lastIndex, match.index), plain, tokens);
+    tokenizeWithEmphasis(text.slice(lastIndex, match.index), plain, tokens);
     pushToken(tokens, "[[", "bold");
     tokenizeInner(match[1], "bold", tokens);
     pushToken(tokens, "]]", "bold");
     lastIndex = match.index + match[0].length;
   }
-  tokenizeInner(text.slice(lastIndex), plain, tokens);
+  tokenizeWithEmphasis(text.slice(lastIndex), plain, tokens);
 }
 
 export function highlightSource(text: string): SourceToken[] {

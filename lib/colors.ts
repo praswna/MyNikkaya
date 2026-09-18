@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { THEMES, type Theme, type ThemeColors } from "./theme";
+import { type ThemeColors } from "./theme";
+import { COLOR_STORAGE_KEY, DEFAULT_COLORS, resolveColorOverrides, type ColorOverrides } from "./color-storage";
 
 // =============================================
 // 색 바꾸기 (설정 > 색 조절)
 //
 // 기본 색은 lib/theme.ts 에 있고, 여기서는 사람이 고른 값만 그 위에 덮는다.
-// 다크·라이트를 따로 기억한다. 고르지 않은 값은 기본 색 그대로 쓴다.
+// 랜덤 배색과 직접 고른 색을 하나의 설정으로 기억한다.
 // =============================================
 
-const STORAGE_KEY = "app_colors";
-
-export type ColorOverrides = { [T in Theme]?: Partial<ThemeColors> };
+const STORAGE_KEY = COLOR_STORAGE_KEY;
 
 // 색 하나하나에 이름을 붙여 묶는다 (설정 화면에 이 순서대로 나온다)
 export interface ColorField {
@@ -26,9 +25,10 @@ export const COLOR_GROUPS: { title: string; fields: ColorField[] }[] = [
     title: "본문",
     fields: [
       { key: "text", label: "평문·대화 글자" },
-      { key: "sayText", label: "부처님 말씀 글자", hint: ">> <<" },
+      { key: "sayText", label: "강조 글자", hint: ">> <<" },
       { key: "talkText", label: "대화 글자", hint: "> <" },
       { key: "textBold", label: "제목 글자", hint: "[[ ]]" },
+      { key: "textAccent", label: "부분강조 글자", hint: "[ ]" },
       { key: "textEmphasis", label: "루비 달린 낱말" },
     ],
   },
@@ -51,6 +51,7 @@ export const COLOR_GROUPS: { title: string; fields: ColorField[] }[] = [
     title: "카테고리",
     fields: [
       { key: "categoryText", label: "글자" },
+      { key: "categoryParentText", label: "상위 글자", hint: "아래층 있음" },
       { key: "categoryBorder", label: "테두리" },
       { key: "categorySelected", label: "고른 것 바탕" },
       { key: "categorySelectedText", label: "고른 것 글자" },
@@ -79,22 +80,23 @@ const EMPTY: ColorOverrides = {};
 
 // useSyncExternalStore 는 같은 값이면 같은 객체를 돌려받아야 한다.
 // 글자열이 그대로면 앞서 만든 객체를 다시 준다 (안 그러면 화면이 끝없이 다시 그려진다).
-let cached: { raw: string | null; value: ColorOverrides } = { raw: null, value: EMPTY };
+let cached: { signature: string; value: ColorOverrides } | undefined;
+let memoryValue: ColorOverrides | undefined;
 
 function readOverrides(): ColorOverrides {
-  let raw: string | null = null;
+  if (memoryValue) return memoryValue;
   try {
-    raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const legacyRaw = raw === null ? localStorage.getItem("app_colors") : null;
+    const legacyTheme = raw === null ? localStorage.getItem("app_theme") : null;
+    const signature = JSON.stringify([raw, legacyRaw, legacyTheme]);
+    if (signature === cached?.signature) return cached.value;
+    const value = resolveColorOverrides(raw, legacyRaw, legacyTheme);
+    cached = { signature, value };
+    return value;
   } catch {
     return EMPTY;
   }
-  if (raw === cached.raw) return cached.value;
-  let value: ColorOverrides = EMPTY;
-  try {
-    if (raw) value = JSON.parse(raw) as ColorOverrides;
-  } catch {}
-  cached = { raw, value };
-  return value;
 }
 
 function subscribe(listener: () => void): () => void {
@@ -109,7 +111,10 @@ function subscribe(listener: () => void): () => void {
 function write(next: ColorOverrides): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  } catch {}
+    memoryValue = undefined;
+  } catch {
+    memoryValue = next;
+  }
   listeners.forEach((listener) => listener());
 }
 
@@ -117,41 +122,34 @@ export function useColorOverrides(): ColorOverrides {
   return useSyncExternalStore(subscribe, readOverrides, () => EMPTY);
 }
 
-export function useColorActions(): {
-  setColor: (theme: Theme, key: keyof ThemeColors, value: string) => void;
-  resetTheme: (theme: Theme) => void;
-} {
-  const setColor = useCallback((theme: Theme, key: keyof ThemeColors, value: string) => {
-    const all = readOverrides();
-    write({ ...all, [theme]: { ...all[theme], [key]: value } });
+export function useColorActions() {
+  const setColor = useCallback((key: keyof ThemeColors, value: string) => {
+    write({ ...readOverrides(), [key]: value });
   }, []);
 
-  const resetTheme = useCallback((theme: Theme) => {
-    const all = { ...readOverrides() };
-    delete all[theme];
-    write(all);
+  const setColors = useCallback((colors: ThemeColors) => {
+    write({ ...colors });
   }, []);
 
-  return { setColor, resetTheme };
+  const resetColors = useCallback(() => {
+    // 빈 설정도 저장해서 이전 모드의 색이 다시 나타나지 않게 한다.
+    write({});
+  }, []);
+
+  return { setColor, setColors, resetColors };
 }
 
-// 기본 색 위에 고른 색을 덮은 최종 색
-export function mergeColors(theme: Theme, overrides: ColorOverrides): ThemeColors {
-  return { ...THEMES[theme], ...overrides[theme] };
+export function mergeColors(overrides: ColorOverrides): ThemeColors {
+  return { ...DEFAULT_COLORS, ...overrides };
 }
 
-// 사람이 읽고 그대로 옮겨 적을 수 있는 형태로 (복사 버튼)
 export function formatColors(overrides: ColorOverrides): string {
-  const lines: string[] = [];
-  for (const theme of ["dark", "light"] as Theme[]) {
-    const colors = mergeColors(theme, overrides);
-    const changed = COLOR_FIELDS.filter((f) => colors[f.key] !== THEMES[theme][f.key]);
-    lines.push(`[${theme === "dark" ? "다크" : "라이트"}]${changed.length === 0 ? " 기본 그대로" : ""}`);
-    for (const field of COLOR_FIELDS) {
-      const mark = changed.includes(field) ? " ←바꿈" : "";
-      lines.push(`${field.key}: ${colors[field.key]}  # ${field.label}${mark}`);
-    }
-    lines.push("");
+  const colors = mergeColors(overrides);
+  const changed = COLOR_FIELDS.filter((f) => colors[f.key] !== DEFAULT_COLORS[f.key]);
+  const lines = [`[색 조절]${changed.length === 0 ? " 기본 그대로" : ""}`];
+  for (const field of COLOR_FIELDS) {
+    const mark = changed.includes(field) ? " ←바꿈" : "";
+    lines.push(`${field.key}: ${colors[field.key]}  # ${field.label}${mark}`);
   }
-  return lines.join("\n").trim();
+  return lines.join("\n");
 }
